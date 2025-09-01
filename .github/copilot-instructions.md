@@ -1,6 +1,6 @@
 # Ouroboros Spring Boot Application
 
-Ouroboros is a Spring Boot 3.5.x web application built with Maven and Java 21. It provides a simple REST API with two endpoints for demonstration purposes.
+Ouroboros is a Spring Boot 3.5.0 web application built with Maven and Java 21. It provides a simple REST API with two endpoints for demonstration purposes.
 
 **Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.**
 
@@ -15,16 +15,16 @@ Ouroboros is a Spring Boot 3.5.x web application built with Maven and Java 21. I
 Always run these commands from the repository root directory:
 
 - **Clean compile**: `mvn clean compile`
-  - Takes approximately 18 seconds on first run (downloads dependencies)
+  - Takes approximately 17 seconds on first run (downloads dependencies)
   - **NEVER CANCEL**: Set timeout to 60+ minutes. BUILD MAY TAKE LONGER ON SLOW NETWORKS.
   
 - **Run tests**: `mvn test`
-  - Takes approximately 10-11 seconds 
+  - Takes approximately 9 seconds 
   - **NEVER CANCEL**: Set timeout to 30+ minutes for test execution
   - Runs 3 tests: context loads test and 2 controller endpoint tests
   
 - **Create JAR package**: `mvn package`
-  - Takes approximately 11-12 seconds
+  - Takes approximately 10 seconds
   - **NEVER CANCEL**: Set timeout to 60+ minutes for packaging
   - Creates executable JAR: `target/ouroboros-0.0.1-SNAPSHOT.jar`
 
@@ -58,7 +58,7 @@ java -jar target/ouroboros-0.0.1-SNAPSHOT.jar
    - Stop the application (Ctrl+C)
 
 2. **Build Validation**:
-   - Run `mvn clean compile test package` (takes ~40 seconds total)
+   - Run `mvn clean compile test package` (takes ~36 seconds first time, ~5 seconds subsequent)
    - Verify JAR exists: `ls -la target/ouroboros-0.0.1-SNAPSHOT.jar`
    - Test JAR execution as shown above
 
@@ -68,7 +68,7 @@ java -jar target/ouroboros-0.0.1-SNAPSHOT.jar
 ```
 .
 ├── README.md                    (minimal project description)
-├── pom.xml                     (Maven configuration, Spring Boot 3.5.x)
+├── pom.xml                     (Maven configuration, Spring Boot 3.5.0)
 ├── src/
 │   ├── main/
 │   │   ├── java/com/ouroboros/
@@ -118,10 +118,10 @@ logging.level.org.springframework=INFO
 
 ### Time Expectations
 - **Initial Maven dependency download**: 15-20 seconds (first time only)
-- **Compile**: ~18 seconds (first time), ~2 seconds (subsequent)
-- **Test execution**: ~10-11 seconds (first time), ~2-3 seconds (subsequent)
-- **Package creation**: ~11-12 seconds (first time), ~1-2 seconds (subsequent)
-- **Application startup**: 1-2 seconds
-- **Total build and test cycle**: ~40 seconds (first time), ~6-8 seconds (subsequent with cached dependencies)
+- **Compile**: ~17 seconds (first time), ~2 seconds (subsequent)
+- **Test execution**: ~9 seconds (first time), ~2-3 seconds (subsequent)
+- **Package creation**: ~10 seconds (first time), ~1-2 seconds (subsequent)
+- **Application startup**: 2 seconds
+- **Total build and test cycle**: ~36 seconds (first time), ~5-6 seconds (subsequent with cached dependencies)
 
 **REMEMBER**: These are typical times. On slower networks or systems, builds may take significantly longer. **NEVER CANCEL** long-running builds - wait for completion and increase timeouts accordingly.
