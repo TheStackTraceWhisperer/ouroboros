@@ -1,0 +1,28 @@
+# Ignore build artifacts and dependencies
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# Ignore version control
+.git/
+.gitignore
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore documentation and non-essential files
+README.md
+*.md
+docs/
+
+# Ignore GitHub Actions (not needed in container)
+.github/
