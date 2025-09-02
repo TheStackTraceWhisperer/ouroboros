@@ -25,7 +25,7 @@ For production deployments and GitHub Actions workflows, use environment variabl
 
 ```properties
 # GitHub Integration Configuration (in application.properties)
-github.token=${GITHUB_TOKEN:}
+github.token=${OUROBOROS_GITHUB_TOKEN:}
 github.organization=TheStackTraceWhisperer
 github.repository=ouroboros
 ```
@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Run application
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
+          OUROBOROS_GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
         run: |
           java -jar target/ouroboros-0.0.1-SNAPSHOT.jar
 ```
@@ -54,7 +54,7 @@ jobs:
 
 **Alternative Environment Variable Names:**
 Spring Boot automatically maps environment variables to properties:
-- `GITHUB_TOKEN` maps to `github.token`
+- `OUROBOROS_GITHUB_TOKEN` maps to `github.token`
 - `GITHUB_ORGANIZATION` maps to `github.organization`  
 - `GITHUB_REPOSITORY` maps to `github.repository`
 
