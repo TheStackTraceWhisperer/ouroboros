@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 class SentimentType(str, Enum):
     """Sentiment classification options."""
+
     POSITIVE = "positive"
     NEGATIVE = "negative"
     NEUTRAL = "neutral"
@@ -22,6 +23,7 @@ class SentimentType(str, Enum):
 
 class TopicTag(str, Enum):
     """Primary topic categories for feedback classification."""
+
     BUG = "bug"
     FEATURE_REQUEST = "feature-request"
     UI_FEEDBACK = "ui-feedback"
@@ -34,10 +36,11 @@ class TopicTag(str, Enum):
 class FeedbackItem(BaseModel):
     """
     Standardized structure for normalized user feedback data.
-    
+
     This is the core data structure that all ingested feedback
     gets converted into for consistent processing.
     """
+
     id: UUID = Field(default_factory=uuid4)
     source: str = Field(..., description="Source platform (e.g., 'reddit', 'twitter')")
     source_id: str = Field(..., description="Original ID from source platform")
@@ -45,12 +48,16 @@ class FeedbackItem(BaseModel):
     author: str = Field(..., description="Username/author identifier")
     title: Optional[str] = Field(None, description="Post title if applicable")
     content: str = Field(..., description="Main text content")
-    timestamp: datetime = Field(..., description="When the feedback was originally posted")
+    timestamp: datetime = Field(
+        ..., description="When the feedback was originally posted"
+    )
     ingested_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     # Raw data preservation
-    raw_data: dict = Field(default_factory=dict, description="Original raw data from API")
-    
+    raw_data: dict = Field(
+        default_factory=dict, description="Original raw data from API"
+    )
+
     # Computed fields (populated during analysis)
     processed_at: Optional[datetime] = None
     sentiment: Optional[SentimentType] = None
@@ -59,15 +66,14 @@ class FeedbackItem(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         use_enum_values = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v)
-        }
+        json_encoders = {datetime: lambda v: v.isoformat(), UUID: lambda v: str(v)}
 
 
 class SentimentAnalysis(BaseModel):
     """Result of sentiment analysis."""
+
     sentiment: SentimentType
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: Optional[str] = None
@@ -75,6 +81,7 @@ class SentimentAnalysis(BaseModel):
 
 class TopicAnalysis(BaseModel):
     """Result of topic extraction."""
+
     topics: List[TopicTag]
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: Optional[str] = None
@@ -82,6 +89,7 @@ class TopicAnalysis(BaseModel):
 
 class InsightAnalysis(BaseModel):
     """Combined analysis results for a feedback item."""
+
     feedback_id: UUID
     sentiment_analysis: SentimentAnalysis
     topic_analysis: TopicAnalysis
@@ -90,6 +98,7 @@ class InsightAnalysis(BaseModel):
 
 class DailySummary(BaseModel):
     """Daily summary report structure."""
+
     id: UUID = Field(default_factory=uuid4)
     date: datetime
     total_feedback_items: int
@@ -102,6 +111,7 @@ class DailySummary(BaseModel):
 
 class GoalProposalStatus(str, Enum):
     """Status options for goal proposals."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -111,6 +121,7 @@ class GoalProposalStatus(str, Enum):
 
 class TrendType(str, Enum):
     """Types of trends that can be detected."""
+
     SENTIMENT_SHIFT = "sentiment_shift"
     TOPIC_CLUSTER = "topic_cluster"
     VOLUME_SPIKE = "volume_spike"
@@ -119,6 +130,7 @@ class TrendType(str, Enum):
 
 class TrendAnalysis(BaseModel):
     """Analysis results for detected trends."""
+
     trend_type: TrendType
     confidence: float = Field(..., ge=0.0, le=1.0)
     affected_feedback_count: int
@@ -131,16 +143,19 @@ class TrendAnalysis(BaseModel):
 
 class GoalProposal(BaseModel):
     """A proposed goal generated from trend analysis."""
+
     id: UUID = Field(default_factory=uuid4)
     title: str = Field(..., min_length=10, max_length=200)
     description: str = Field(..., min_length=50)
     status: GoalProposalStatus = Field(default=GoalProposalStatus.PENDING)
-    priority: int = Field(..., ge=1, le=5, description="Priority from 1 (low) to 5 (high)")
-    
+    priority: int = Field(
+        ..., ge=1, le=5, description="Priority from 1 (low) to 5 (high)"
+    )
+
     # Source trend information
     source_trend: TrendAnalysis
     supporting_feedback_ids: List[UUID]
-    
+
     # Metadata
     created_at: datetime = Field(default_factory=datetime.utcnow)
     created_by: str = Field(default="product_insight_agent")
