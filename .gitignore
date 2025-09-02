@@ -23,6 +23,9 @@ Thumbs.db
 *.war
 *.nar
 
+# Environment Configuration
+.env
+
 # Temporary files
 *.tmp
 *.swp
