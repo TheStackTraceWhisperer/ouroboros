@@ -112,6 +112,8 @@ class TestGoalGenerationService:
         """Test priority calculation for medium severity trends."""
         sample_trend.severity_score = 0.7
         sample_trend.affected_feedback_count = 8
+        sample_trend.trend_type = TrendType.TOPIC_CLUSTER  # Non-sentiment shift to avoid boost
+        sample_trend.primary_topics = [TopicTag.GENERAL]  # Non-bug topic
         
         priority = self.service._calculate_priority(sample_trend)
         assert 3 <= priority <= 4
