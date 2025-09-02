@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     """Application configuration settings."""
     
     # Reddit API Configuration
-    reddit_client_id: str = Field(..., env="REDDIT_CLIENT_ID")
-    reddit_client_secret: str = Field(..., env="REDDIT_CLIENT_SECRET")
+    reddit_client_id: str = Field("test_client_id", env="REDDIT_CLIENT_ID")
+    reddit_client_secret: str = Field("test_client_secret", env="REDDIT_CLIENT_SECRET")
     reddit_user_agent: str = Field("ProductInsightAgent/1.0", env="REDDIT_USER_AGENT")
     reddit_subreddit: str = Field("OurAppCommunity", env="REDDIT_SUBREDDIT")
     

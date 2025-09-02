@@ -94,6 +94,9 @@ class GoalGenerationService:
         # Create goal proposal
         supporting_feedback_ids = [item.id for item in relevant_feedback]
         
+        # Generate summary text from title and description
+        summary_text = f"{goal_data['title']} - {goal_data['description'][:100]}..."
+        
         goal = GoalProposal(
             title=goal_data["title"],
             description=goal_data["description"],
@@ -103,7 +106,8 @@ class GoalGenerationService:
             supporting_feedback_ids=supporting_feedback_ids,
             tags=goal_data.get("tags", []),
             estimated_effort=goal_data.get("estimated_effort"),
-            potential_impact=goal_data.get("potential_impact")
+            potential_impact=goal_data.get("potential_impact"),
+            summary_text=summary_text
         )
         
         return goal
