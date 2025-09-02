@@ -10,10 +10,10 @@ import click
 from dotenv import load_dotenv
 
 from .config import settings
-from .models import FeedbackItem, InsightAnalysis, DailySummary
+from .models import FeedbackItem, InsightAnalysis, DailySummary, GoalProposal, TrendAnalysis
 from .ingestion import RedditConnector
 from .processing import DataProcessor
-from .insights import LLMInsightService
+from .insights import LLMInsightService, GoalGenerationService
 from .reporting import ReportingService
 from .storage import StorageService
 
@@ -44,6 +44,7 @@ class ProductInsightAgent:
         self.llm_service = LLMInsightService()
         self.storage_service = StorageService()
         self.reporting_service = ReportingService(self.llm_service)
+        self.goal_service = GoalGenerationService(self.llm_service)
         
         # Ensure data directories exist
         os.makedirs(settings.data_dir, exist_ok=True)
@@ -256,6 +257,117 @@ class ProductInsightAgent:
         """Get filename for report."""
         date_str = date.strftime("%Y-%m-%d")
         return os.path.join(settings.reports_dir, f"daily-summary-{date_str}.md")
+    
+    def generate_goals_from_trends(self, days: int = 7) -> List[GoalProposal]:
+        """
+        Analyze recent data for trends and generate goal proposals.
+        
+        Args:
+            days: Number of days to analyze for trends
+            
+        Returns:
+            List of generated goal proposals
+        """
+        logger.info(f"Generating goals from trends over last {days} days")
+        
+        try:
+            # Get recent data
+            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            
+            # Get recent summaries
+            summaries = []
+            for i in range(days):
+                date = cutoff_date + timedelta(days=i)
+                summary = self.storage_service.get_daily_summary_by_date(date.date())
+                if summary:
+                    summaries.append(summary)
+            
+            if len(summaries) < 2:
+                logger.warning("Insufficient data for trend analysis")
+                return []
+            
+            # Get recent feedback and analyses
+            feedback_items = self.storage_service.get_feedback_items_by_date_range(
+                cutoff_date, datetime.utcnow()
+            )
+            analyses = self.storage_service.get_analyses_by_date_range(
+                cutoff_date, datetime.utcnow()
+            )
+            
+            if not feedback_items or not analyses:
+                logger.warning("No recent feedback or analyses found")
+                return []
+            
+            # Detect trends
+            trends = self.reporting_service.detect_significant_trends(
+                summaries, feedback_items, analyses, days
+            )
+            
+            if not trends:
+                logger.info("No significant trends detected")
+                return []
+            
+            logger.info(f"Detected {len(trends)} significant trends")
+            
+            # Generate goals from trends
+            goals = self.goal_service.generate_goals_from_trends(
+                trends, feedback_items, analyses
+            )
+            
+            if goals:
+                # Store goals in database
+                success = self.storage_service.store_goal_proposals(goals)
+                if success:
+                    logger.info(f"Successfully generated and stored {len(goals)} goal proposals")
+                else:
+                    logger.error("Failed to store goal proposals")
+            
+            return goals
+            
+        except Exception as e:
+            logger.error(f"Goal generation failed: {e}")
+            return []
+    
+    def run_enhanced_pipeline(self) -> None:
+        """Run the complete pipeline including goal generation."""
+        logger.info("Starting enhanced pipeline execution with goal generation")
+        
+        try:
+            # Step 1: Test connections
+            if not self.test_connections():
+                logger.error("Connection tests failed, aborting pipeline")
+                return
+            
+            # Step 2: Ingest new data
+            feedback_items = self.ingest_data()
+            
+            # Step 3: Analyze feedback
+            analyses = self.analyze_feedback()
+            
+            # Step 4: Generate daily report
+            summary = self.generate_report()
+            
+            # Step 5: Generate goals from trends (if enough data)
+            goals = self.generate_goals_from_trends()
+            
+            logger.info("Enhanced pipeline execution completed successfully")
+            
+            # Print summary statistics
+            print(f"\n=== Enhanced Pipeline Execution Summary ===")
+            print(f"Date: {datetime.utcnow().date()}")
+            print(f"New feedback items ingested: {len(feedback_items)}")
+            print(f"Feedback items analyzed: {len(analyses)}")
+            print(f"Daily summary generated: {'Yes' if summary else 'No'}")
+            print(f"Goal proposals generated: {len(goals)}")
+            
+            if goals:
+                print(f"\n--- Generated Goals ---")
+                for i, goal in enumerate(goals, 1):
+                    print(f"{i}. {goal.title} (Priority: {goal.priority}/5)")
+            
+        except Exception as e:
+            logger.error(f"Enhanced pipeline execution failed: {e}")
+            raise
 
 
 @click.group()
@@ -319,6 +431,61 @@ def stats():
         else:
             print(f"{key.replace('_', ' ').title()}: {value}")
     print("=" * 28)
+
+
+@cli.command()
+@click.option('--days', default=7, help='Number of days to analyze for trends')
+def generate_goals(days):
+    """Generate goal proposals from trend analysis."""
+    agent = ProductInsightAgent()
+    goals = agent.generate_goals_from_trends(days)
+    
+    if goals:
+        print(f"\n=== Generated {len(goals)} Goal Proposals ===")
+        for i, goal in enumerate(goals, 1):
+            print(f"\n{i}. {goal.title}")
+            print(f"   Priority: {goal.priority}/5")
+            print(f"   Status: {goal.status.value}")
+            print(f"   Trend: {goal.source_trend.trend_type.value.replace('_', ' ').title()}")
+            print(f"   Affected Feedback: {goal.source_trend.affected_feedback_count}")
+            print(f"   Description: {goal.description[:100]}...")
+    else:
+        print("No goal proposals generated.")
+
+
+@cli.command()
+def enhanced_pipeline():
+    """Run the complete pipeline including goal generation."""
+    agent = ProductInsightAgent()
+    agent.run_enhanced_pipeline()
+
+
+@cli.command()
+@click.option('--status', type=click.Choice(['pending', 'approved', 'rejected', 'in_progress', 'completed']),
+              help='Filter goals by status')
+@click.option('--limit', default=20, help='Maximum number of goals to show')
+def list_goals(status, limit):
+    """List existing goal proposals."""
+    agent = ProductInsightAgent()
+    
+    from .models import GoalProposalStatus
+    status_filter = None
+    if status:
+        status_filter = GoalProposalStatus(status)
+    
+    goals = agent.storage_service.get_goal_proposals(status=status_filter, limit=limit)
+    
+    if goals:
+        print(f"\n=== Found {len(goals)} Goal Proposals ===")
+        for i, goal in enumerate(goals, 1):
+            print(f"\n{i}. {goal.title}")
+            print(f"   ID: {goal.id}")
+            print(f"   Priority: {goal.priority}/5")
+            print(f"   Status: {goal.status.value}")
+            print(f"   Created: {goal.created_at.strftime('%Y-%m-%d %H:%M')}")
+            print(f"   Trend: {goal.source_trend.trend_type.value.replace('_', ' ').title()}")
+    else:
+        print("No goal proposals found.")
 
 
 if __name__ == "__main__":

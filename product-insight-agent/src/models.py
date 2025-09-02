@@ -96,5 +96,55 @@ class DailySummary(BaseModel):
     sentiment_breakdown: dict[SentimentType, int]
     topic_breakdown: dict[TopicTag, int]
     key_insights: List[str]
+    summary_text: str
     generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class GoalProposalStatus(str, Enum):
+    """Status options for goal proposals."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class TrendType(str, Enum):
+    """Types of trends that can be detected."""
+    SENTIMENT_SHIFT = "sentiment_shift"
+    TOPIC_CLUSTER = "topic_cluster"
+    VOLUME_SPIKE = "volume_spike"
+    RECURRING_ISSUE = "recurring_issue"
+
+
+class TrendAnalysis(BaseModel):
+    """Analysis results for detected trends."""
+    trend_type: TrendType
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    affected_feedback_count: int
+    primary_topics: List[TopicTag]
+    sentiment_distribution: dict[SentimentType, int]
+    key_indicators: List[str]
+    time_period: str
+    severity_score: float = Field(..., ge=0.0, le=1.0)
+
+
+class GoalProposal(BaseModel):
+    """A proposed goal generated from trend analysis."""
+    id: UUID = Field(default_factory=uuid4)
+    title: str = Field(..., min_length=10, max_length=200)
+    description: str = Field(..., min_length=50)
+    status: GoalProposalStatus = Field(default=GoalProposalStatus.PENDING)
+    priority: int = Field(..., ge=1, le=5, description="Priority from 1 (low) to 5 (high)")
+    
+    # Source trend information
+    source_trend: TrendAnalysis
+    supporting_feedback_ids: List[UUID]
+    
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_by: str = Field(default="product_insight_agent")
+    tags: List[str] = Field(default_factory=list)
+    estimated_effort: Optional[str] = None
+    potential_impact: Optional[str] = None
     summary_text: str

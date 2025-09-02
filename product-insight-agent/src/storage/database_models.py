@@ -22,7 +22,8 @@ from sqlalchemy.types import TypeDecorator, CHAR
 from ..config import settings
 from ..models import (
     FeedbackItem, InsightAnalysis, DailySummary,
-    SentimentType, TopicTag, SentimentAnalysis, TopicAnalysis
+    SentimentType, TopicTag, SentimentAnalysis, TopicAnalysis,
+    GoalProposal, GoalProposalStatus, TrendAnalysis, TrendType
 )
 
 # Create base class with schema support
@@ -297,3 +298,137 @@ class DailySummaryDB(Base):
         self.key_insights = summary.key_insights
         self.summary_text = summary.summary_text
         self.generated_at = summary.generated_at
+
+
+class GoalProposalDB(Base):
+    """Database model for goal proposals."""
+    
+    __tablename__ = "goal_proposals"
+    
+    id = Column(GUID(), primary_key=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(SQLEnum(GoalProposalStatus), nullable=False, default=GoalProposalStatus.PENDING, index=True)
+    priority = Column(Integer, nullable=False)
+    
+    # Source trend information
+    trend_type = Column(SQLEnum(TrendType), nullable=False)
+    trend_confidence = Column(Float, nullable=False)
+    affected_feedback_count = Column(Integer, nullable=False)
+    primary_topics = Column(JSON, nullable=False)  # List of TopicTag values
+    sentiment_distribution = Column(JSON, nullable=False)  # Dict of sentiment counts
+    key_indicators = Column(JSON, nullable=False)  # List of key indicators
+    time_period = Column(String(100), nullable=False)
+    severity_score = Column(Float, nullable=False)
+    
+    # Supporting data
+    supporting_feedback_ids = Column(JSON, nullable=False)  # List of UUID strings
+    
+    # Metadata
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_by = Column(String(100), nullable=False, default="product_insight_agent")
+    tags = Column(JSON)  # List of tag strings
+    estimated_effort = Column(Text)
+    potential_impact = Column(Text)
+    
+    def to_pydantic(self) -> GoalProposal:
+        """Convert to Pydantic model."""
+        # Parse primary topics
+        primary_topics = []
+        if self.primary_topics:
+            primary_topics = [TopicTag(topic) for topic in self.primary_topics if topic in [t.value for t in TopicTag]]
+        
+        # Parse sentiment distribution
+        sentiment_distribution = {}
+        for sentiment_str, count in self.sentiment_distribution.items():
+            try:
+                sentiment_distribution[SentimentType(sentiment_str)] = count
+            except ValueError:
+                continue
+        
+        # Create TrendAnalysis
+        trend_analysis = TrendAnalysis(
+            trend_type=self.trend_type,
+            confidence=self.trend_confidence,
+            affected_feedback_count=self.affected_feedback_count,
+            primary_topics=primary_topics,
+            sentiment_distribution=sentiment_distribution,
+            key_indicators=self.key_indicators or [],
+            time_period=self.time_period,
+            severity_score=self.severity_score
+        )
+        
+        # Parse supporting feedback IDs
+        supporting_feedback_ids = []
+        if self.supporting_feedback_ids:
+            supporting_feedback_ids = [UUID(id_str) for id_str in self.supporting_feedback_ids]
+        
+        return GoalProposal(
+            id=self.id,
+            title=self.title,
+            description=self.description,
+            status=self.status,
+            priority=self.priority,
+            source_trend=trend_analysis,
+            supporting_feedback_ids=supporting_feedback_ids,
+            created_at=self.created_at,
+            created_by=self.created_by,
+            tags=self.tags or [],
+            estimated_effort=self.estimated_effort,
+            potential_impact=self.potential_impact
+        )
+    
+    @classmethod
+    def from_pydantic(cls, proposal: GoalProposal) -> "GoalProposalDB":
+        """Create from Pydantic model."""
+        # Convert sentiment distribution to JSON-serializable format
+        sentiment_distribution = {
+            sentiment.value: count
+            for sentiment, count in proposal.source_trend.sentiment_distribution.items()
+        }
+        
+        return cls(
+            id=proposal.id,
+            title=proposal.title,
+            description=proposal.description,
+            status=proposal.status,
+            priority=proposal.priority,
+            trend_type=proposal.source_trend.trend_type,
+            trend_confidence=proposal.source_trend.confidence,
+            affected_feedback_count=proposal.source_trend.affected_feedback_count,
+            primary_topics=[topic.value for topic in proposal.source_trend.primary_topics],
+            sentiment_distribution=sentiment_distribution,
+            key_indicators=proposal.source_trend.key_indicators,
+            time_period=proposal.source_trend.time_period,
+            severity_score=proposal.source_trend.severity_score,
+            supporting_feedback_ids=[str(feedback_id) for feedback_id in proposal.supporting_feedback_ids],
+            created_at=proposal.created_at,
+            created_by=proposal.created_by,
+            tags=proposal.tags,
+            estimated_effort=proposal.estimated_effort,
+            potential_impact=proposal.potential_impact
+        )
+    
+    def update_from_pydantic(self, proposal: GoalProposal):
+        """Update from Pydantic model."""
+        sentiment_distribution = {
+            sentiment.value: count
+            for sentiment, count in proposal.source_trend.sentiment_distribution.items()
+        }
+        
+        self.title = proposal.title
+        self.description = proposal.description
+        self.status = proposal.status
+        self.priority = proposal.priority
+        self.trend_type = proposal.source_trend.trend_type
+        self.trend_confidence = proposal.source_trend.confidence
+        self.affected_feedback_count = proposal.source_trend.affected_feedback_count
+        self.primary_topics = [topic.value for topic in proposal.source_trend.primary_topics]
+        self.sentiment_distribution = sentiment_distribution
+        self.key_indicators = proposal.source_trend.key_indicators
+        self.time_period = proposal.source_trend.time_period
+        self.severity_score = proposal.source_trend.severity_score
+        self.supporting_feedback_ids = [str(feedback_id) for feedback_id in proposal.supporting_feedback_ids]
+        self.tags = proposal.tags
+        self.estimated_effort = proposal.estimated_effort
+        self.potential_impact = proposal.potential_impact

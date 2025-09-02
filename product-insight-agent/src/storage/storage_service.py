@@ -15,8 +15,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..config import settings
-from ..models import FeedbackItem, InsightAnalysis, DailySummary
-from .database_models import Base, FeedbackItemDB, InsightAnalysisDB, DailySummaryDB
+from ..models import FeedbackItem, InsightAnalysis, DailySummary, GoalProposal
+from .database_models import Base, FeedbackItemDB, InsightAnalysisDB, DailySummaryDB, GoalProposalDB
 
 logger = logging.getLogger(__name__)
 
@@ -331,3 +331,145 @@ class StorageService:
         except Exception as e:
             logger.error(f"Database connection test failed: {e}")
             return False
+    
+    # Goal Proposal Operations
+    
+    def store_goal_proposals(self, proposals: List[GoalProposal]) -> bool:
+        """
+        Store goal proposals in the database.
+        
+        Args:
+            proposals: List of GoalProposal objects to store
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with self.SessionLocal() as session:
+                for proposal in proposals:
+                    db_proposal = GoalProposalDB.from_pydantic(proposal)
+                    session.merge(db_proposal)
+                session.commit()
+                
+            logger.info(f"Stored {len(proposals)} goal proposals")
+            return True
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to store goal proposals: {e}")
+            return False
+    
+    def get_goal_proposals(self,
+                         status: Optional["GoalProposalStatus"] = None,
+                         limit: int = 100) -> List[GoalProposal]:
+        """
+        Retrieve goal proposals from the database.
+        
+        Args:
+            status: Optional status filter
+            limit: Maximum number of proposals to return
+            
+        Returns:
+            List of GoalProposal objects
+        """
+        try:
+            with self.SessionLocal() as session:
+                query = session.query(GoalProposalDB)
+                
+                if status:
+                    query = query.filter(GoalProposalDB.status == status)
+                
+                query = query.order_by(GoalProposalDB.created_at.desc())
+                query = query.limit(limit)
+                
+                db_proposals = query.all()
+                proposals = [db_proposal.to_pydantic() for db_proposal in db_proposals]
+                
+            logger.info(f"Retrieved {len(proposals)} goal proposals")
+            return proposals
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve goal proposals: {e}")
+            return []
+    
+    def get_goal_proposal_by_id(self, proposal_id: UUID) -> Optional[GoalProposal]:
+        """
+        Retrieve a specific goal proposal by ID.
+        
+        Args:
+            proposal_id: UUID of the proposal to retrieve
+            
+        Returns:
+            GoalProposal object or None if not found
+        """
+        try:
+            with self.SessionLocal() as session:
+                db_proposal = session.query(GoalProposalDB).filter(
+                    GoalProposalDB.id == proposal_id
+                ).first()
+                
+                if db_proposal:
+                    return db_proposal.to_pydantic()
+                return None
+                
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve goal proposal {proposal_id}: {e}")
+            return None
+    
+    def update_goal_proposal_status(self,
+                                  proposal_id: UUID,
+                                  new_status: "GoalProposalStatus") -> bool:
+        """
+        Update the status of a goal proposal.
+        
+        Args:
+            proposal_id: UUID of the proposal to update
+            new_status: New status to set
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with self.SessionLocal() as session:
+                db_proposal = session.query(GoalProposalDB).filter(
+                    GoalProposalDB.id == proposal_id
+                ).first()
+                
+                if db_proposal:
+                    db_proposal.status = new_status
+                    session.commit()
+                    logger.info(f"Updated goal proposal {proposal_id} status to {new_status}")
+                    return True
+                else:
+                    logger.warning(f"Goal proposal {proposal_id} not found")
+                    return False
+                    
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to update goal proposal status: {e}")
+            return False
+    
+    def get_recent_goal_proposals(self, days: int = 30) -> List[GoalProposal]:
+        """
+        Get goal proposals created in the last N days.
+        
+        Args:
+            days: Number of days to look back
+            
+        Returns:
+            List of recent GoalProposal objects
+        """
+        try:
+            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            
+            with self.SessionLocal() as session:
+                db_proposals = session.query(GoalProposalDB).filter(
+                    GoalProposalDB.created_at >= cutoff_date
+                ).order_by(GoalProposalDB.created_at.desc()).all()
+                
+                proposals = [db_proposal.to_pydantic() for db_proposal in db_proposals]
+                
+            logger.info(f"Retrieved {len(proposals)} goal proposals from last {days} days")
+            return proposals
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to retrieve recent goal proposals: {e}")
+            return []
