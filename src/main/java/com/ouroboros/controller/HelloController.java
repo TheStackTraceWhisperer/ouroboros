@@ -11,9 +11,4 @@ public class HelloController {
         return "Hello from Ouroboros Spring Boot Application!";
     }
 
-    @GetMapping("/health")
-    public String health() {
-        return "OK";
-    }
-
 }

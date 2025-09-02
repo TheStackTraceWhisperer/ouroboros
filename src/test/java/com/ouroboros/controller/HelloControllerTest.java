@@ -21,11 +21,4 @@ public class HelloControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("Hello from Ouroboros Spring Boot Application!"));
     }
-
-    @Test
-    public void testHealthEndpoint() throws Exception {
-        mockMvc.perform(get("/health"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("OK"));
-    }
 }
