@@ -1,15 +1,29 @@
 package com.ouroboros.service;
 
+import com.ouroboros.llm.LLMClientFactory;
 import com.ouroboros.model.Task;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+@ExtendWith(MockitoExtension.class)
 class TaskProcessorServiceTest {
 
-    private final TaskProcessorService taskProcessorService = new TaskProcessorService();
+    @Mock
+    private LLMClientFactory llmClientFactory;
+    
+    private TaskProcessorService taskProcessorService;
+    
+    @BeforeEach
+    void setUp() {
+        taskProcessorService = new TaskProcessorService(llmClientFactory);
+    }
 
     @Test
     void processTask_shouldRunWithoutErrors() {
