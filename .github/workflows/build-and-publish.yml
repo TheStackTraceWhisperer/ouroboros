@@ -35,9 +35,13 @@ jobs:
 
     - name: Run tests
       run: mvn -B clean test
+      env:
+        OUROBOROS_GITHUB_PAT: ${{ secrets.OUROBOROS_GITHUB_PAT }}
 
     - name: Build application
       run: mvn -B clean package -DskipTests
+      env:
+        OUROBOROS_GITHUB_PAT: ${{ secrets.OUROBOROS_GITHUB_PAT }}
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4

@@ -49,4 +49,43 @@ public interface GitHubApiClient {
      * @return true if the client is available
      */
     boolean isAvailable();
+    
+    // GitHub Projects V2 API Methods
+    
+    /**
+     * Get all projects for the repository.
+     * 
+     * @return List of project IDs
+     * @throws GitHubApiException if the operation fails
+     */
+    List<Long> getProjects() throws GitHubApiException;
+    
+    /**
+     * Create a new project.
+     * 
+     * @param title The project title
+     * @param body The project description
+     * @return The project ID
+     * @throws GitHubApiException if the operation fails
+     */
+    Long createProject(String title, String body) throws GitHubApiException;
+    
+    /**
+     * Add an issue to a project.
+     * 
+     * @param projectId The project ID
+     * @param issueId The issue ID
+     * @throws GitHubApiException if the operation fails
+     */
+    void addIssueToProject(Long projectId, Long issueId) throws GitHubApiException;
+    
+    /**
+     * Update project item status.
+     * 
+     * @param projectId The project ID
+     * @param itemId The project item ID
+     * @param status The new status
+     * @throws GitHubApiException if the operation fails
+     */
+    void updateProjectItemStatus(Long projectId, Long itemId, String status) throws GitHubApiException;
 }

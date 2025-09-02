@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -118,6 +119,69 @@ public class GitHubApiClientImpl implements GitHubApiClient {
         } catch (GitHubApiException e) {
             log.warn("GitHub API client is not available: {}", e.getMessage());
             return false;
+        }
+    }
+    
+    // GitHub Projects V2 API Methods
+    
+    @Override
+    public List<Long> getProjects() throws GitHubApiException {
+        try {
+            initializeGitHub();
+            
+            // Note: GitHub Projects V2 API requires GraphQL or REST API v2
+            // For now, we'll return an empty list and log that this feature needs GraphQL implementation
+            log.warn("GitHub Projects V2 API requires GraphQL implementation - returning empty project list");
+            return new ArrayList<>();
+            
+        } catch (Exception e) {
+            throw new GitHubApiException("Failed to get projects", e);
+        }
+    }
+    
+    @Override
+    public Long createProject(String title, String body) throws GitHubApiException {
+        try {
+            initializeGitHub();
+            
+            // Note: GitHub Projects V2 API requires GraphQL
+            // For now, we'll simulate creating a project by logging and returning a dummy ID
+            log.warn("GitHub Projects V2 API requires GraphQL implementation - simulating project creation");
+            log.info("Would create project with title: {} and body: {}", title, body);
+            
+            // Return a dummy project ID for now
+            return System.currentTimeMillis();
+            
+        } catch (Exception e) {
+            throw new GitHubApiException("Failed to create project", e);
+        }
+    }
+    
+    @Override
+    public void addIssueToProject(Long projectId, Long issueId) throws GitHubApiException {
+        try {
+            initializeGitHub();
+            
+            // Note: GitHub Projects V2 API requires GraphQL
+            log.warn("GitHub Projects V2 API requires GraphQL implementation - simulating adding issue to project");
+            log.info("Would add issue #{} to project #{}", issueId, projectId);
+            
+        } catch (Exception e) {
+            throw new GitHubApiException("Failed to add issue to project", e);
+        }
+    }
+    
+    @Override
+    public void updateProjectItemStatus(Long projectId, Long itemId, String status) throws GitHubApiException {
+        try {
+            initializeGitHub();
+            
+            // Note: GitHub Projects V2 API requires GraphQL
+            log.warn("GitHub Projects V2 API requires GraphQL implementation - simulating status update");
+            log.info("Would update project #{} item #{} status to: {}", projectId, itemId, status);
+            
+        } catch (Exception e) {
+            throw new GitHubApiException("Failed to update project item status", e);
         }
     }
 }

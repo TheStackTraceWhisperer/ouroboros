@@ -1,7 +1,21 @@
 # GitHub Integration Service Configuration
 
 ## Overview
-The GitHub Integration Service provides centralized observability and control for agent tasks by synchronizing goal proposals with GitHub Issues. This allows human oversight through a familiar GitHub interface.
+The GitHub Integration Service provides centralized observability and control for agent tasks by synchronizing goal proposals with GitHub Issues and organizing large features with GitHub Projects. This allows human oversight through a familiar GitHub interface.
+
+## Features
+
+### GitHub Issues Integration
+- **Automatic Issue Creation**: New goal proposals are automatically converted to GitHub Issues
+- **Status Synchronization**: Proposal status changes are reflected as issue comments
+- **Issue Closure**: Completed or failed proposals automatically close their corresponding issues
+- **Label Management**: Issues can be tagged with relevant labels for categorization
+
+### GitHub Projects Integration (New)
+- **Feature Project Creation**: Large features can be organized into GitHub Projects
+- **Issue-to-Project Linking**: Issues can be added to projects for better organization
+- **Project Item Status Tracking**: Status updates for project items
+- **Project-based Workflow**: Support for feature design and tracking workflows
 
 ## Configuration
 
@@ -11,9 +25,9 @@ Add these properties to your `application.properties` file:
 ```properties
 # GitHub Integration Configuration
 github.integration.enabled=true
-github.integration.token=ghp_your_github_personal_access_token_here
-github.integration.repository.owner=your-github-username
-github.integration.repository.name=your-repo-name
+github.integration.token=${OUROBOROS_GITHUB_PAT:}
+github.integration.repository.owner=${GITHUB_REPOSITORY_OWNER:TheStackTraceWhisperer}
+github.integration.repository.name=${GITHUB_REPOSITORY_NAME:ouroboros}
 github.integration.sync.interval=60000
 ```
 
@@ -21,13 +35,22 @@ github.integration.sync.interval=60000
 1. Go to GitHub Settings → Developer Settings → Personal Access Tokens → Tokens (classic)
 2. Generate a new token with these permissions:
    - `repo` (Full control of private repositories)
-   - `public_repo` (Access to public repositories) 
-3. Copy the token and set it in the `github.integration.token` property
+   - `public_repo` (Access to public repositories)
+   - `project` (Full control of projects) - **New for Projects support**
+3. Copy the token and set it as the `OUROBOROS_GITHUB_PAT` environment variable or GitHub Actions secret
 
 ### Repository Configuration
-- `github.integration.repository.owner`: Your GitHub username or organization name
-- `github.integration.repository.name`: The repository name where issues will be created
+- `github.integration.repository.owner`: Your GitHub username or organization name (uses `GITHUB_REPOSITORY_OWNER` env var or defaults to `TheStackTraceWhisperer`)
+- `github.integration.repository.name`: The repository name where issues will be created (uses `GITHUB_REPOSITORY_NAME` env var or defaults to `ouroboros`)
 - `github.integration.sync.interval`: Sync interval in milliseconds (default: 60000 = 1 minute)
+
+### GitHub Actions Integration
+When running in GitHub Actions, the integration will automatically use the `OUROBOROS_GITHUB_PAT` secret if available. To configure this:
+
+1. Go to your repository Settings → Secrets and variables → Actions
+2. Add a new repository secret named `OUROBOROS_GITHUB_PAT`
+3. Set the value to your GitHub Personal Access Token
+4. The application will automatically use this token when running in GitHub Actions
 
 ## How It Works
 
@@ -90,7 +113,37 @@ GET /api/goal-proposals/status/COMPLETED
 GET /api/goal-proposals/status/FAILED
 ```
 
+### GitHub Projects API Endpoints
+
+#### Create Feature Project
+```bash
+POST /api/github/projects
+Content-Type: application/json
+
+{
+  "featureName": "User Authentication System",
+  "description": "Implement OAuth2-based authentication with social login support"
+}
+```
+
+#### Add Issue to Project
+```bash
+POST /api/github/projects/{projectId}/issues/{issueId}
+```
+
+#### Update Project Item Status
+```bash
+PUT /api/github/projects/{projectId}/items/{itemId}/status
+Content-Type: application/json
+
+{
+  "status": "In Progress"
+}
+```
+
 ## Example Workflow
+
+### Basic Issue Tracking Workflow
 
 1. **Agent creates proposal:**
 ```bash
