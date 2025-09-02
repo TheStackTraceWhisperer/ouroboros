@@ -17,7 +17,41 @@ github.organization=TheStackTraceWhisperer
 github.repository=ouroboros
 ```
 
-**Note**: Without a valid GitHub token, the service operates in anonymous mode with limited functionality due to GitHub API rate limiting.
+### GitHub Token Requirements
+
+The service requires a **Personal Access Token (PAT)** with appropriate permissions to manage issues and project boards.
+
+#### Token Type Options
+
+**Option 1: Classic Personal Access Token (Recommended)**
+- Navigate to: GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+- Select the following scope:
+  - `repo` (Full control of private repositories)
+    - This includes all necessary permissions: repository access, issues management, and project boards
+
+**Option 2: Fine-grained Personal Access Token**
+- Navigate to: GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens
+- Repository access: `TheStackTraceWhisperer/ouroboros`
+- Required repository permissions:
+  - **Issues**: Read and write
+  - **Projects**: Read and write
+  - **Metadata**: Read
+  - **Contents**: Read
+
+#### Required Operations
+
+The token enables these GitHub API operations:
+- **Issue Management**: Create, read, and label issues
+- **Project Boards**: Create repository-level project boards with Kanban columns
+- **Project Cards**: Add/remove issues from project board columns
+- **Repository Access**: Read repository metadata and settings
+
+#### Rate Limiting
+
+- **Authenticated requests**: 5,000 requests per hour
+- **Anonymous requests**: 60 requests per hour (fallback mode)
+
+**Note**: Without a valid GitHub token, the service operates in anonymous mode with severely limited functionality due to GitHub API rate limiting. Most write operations (creating issues, projects) will fail in anonymous mode.
 
 ## Features Implemented
 
