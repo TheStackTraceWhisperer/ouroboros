@@ -27,6 +27,7 @@ public class GitHubIntegrationService {
     
     private final GoalProposalRepository proposalRepository;
     private final GitHubApiClient gitHubApiClient;
+    private final GitHubProjectsService gitHubProjectsService;
     
     @Value("${github.integration.enabled:true}")
     private boolean integrationEnabled;
@@ -35,9 +36,11 @@ public class GitHubIntegrationService {
     
     @Autowired
     public GitHubIntegrationService(GoalProposalRepository proposalRepository, 
-                                   GitHubApiClient gitHubApiClient) {
+                                   GitHubApiClient gitHubApiClient,
+                                   GitHubProjectsService gitHubProjectsService) {
         this.proposalRepository = proposalRepository;
         this.gitHubApiClient = gitHubApiClient;
+        this.gitHubProjectsService = gitHubProjectsService;
     }
     
     /**
@@ -221,5 +224,40 @@ public class GitHubIntegrationService {
         String emoji = proposal.getStatus() == GoalProposalStatus.COMPLETED ? "✅" : "❌";
         return String.format("%s **Task %s** at %s\n\n*This issue is now closed as the goal proposal has reached its final state.*", 
                 emoji, proposal.getStatus().name().toLowerCase(), proposal.getUpdatedAt());
+    }
+    
+    /**
+     * Create a GitHub project for large feature tracking.
+     * This provides higher-level organization for complex initiatives.
+     */
+    public Long createFeatureProject(String featureName, String description) {
+        if (!integrationEnabled) {
+            log.debug("GitHub integration is disabled, skipping feature project creation");
+            return null;
+        }
+        
+        if (!gitHubApiClient.isAvailable()) {
+            log.warn("GitHub API client is not available, skipping feature project creation");
+            return null;
+        }
+        
+        return gitHubProjectsService.createFeatureProject(featureName, description);
+    }
+    
+    /**
+     * Add an issue to a feature project for tracking.
+     */
+    public void addIssueToFeatureProject(Long projectId, Long issueId) {
+        if (!integrationEnabled) {
+            log.debug("GitHub integration is disabled, skipping add issue to project");
+            return;
+        }
+        
+        if (!gitHubApiClient.isAvailable()) {
+            log.warn("GitHub API client is not available, skipping add issue to project");
+            return;
+        }
+        
+        gitHubProjectsService.addIssueToProject(projectId, issueId);
     }
 }

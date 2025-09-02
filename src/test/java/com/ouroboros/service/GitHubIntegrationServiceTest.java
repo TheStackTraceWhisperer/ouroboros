@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests the synchronization logic with a mock GitHub API client.
  */
 @DataJpaTest
-@Import({GitHubIntegrationService.class, MockGitHubApiClient.class})
+@Import({GitHubIntegrationService.class, GitHubProjectsService.class, MockGitHubApiClient.class})
 @TestPropertySource(properties = {
     "github.integration.enabled=true",
     "github.integration.sync.interval=1000"

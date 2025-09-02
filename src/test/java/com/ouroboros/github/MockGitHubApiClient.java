@@ -87,9 +87,72 @@ public class MockGitHubApiClient implements GitHubApiClient {
         return available;
     }
     
+    // GitHub Projects V2 API Methods (Mock implementations)
+    
+    private final AtomicLong projectIdCounter = new AtomicLong(1);
+    private final Map<Long, MockProject> projects = new HashMap<>();
+    
+    @Override
+    public List<Long> getProjects() throws GitHubApiException {
+        if (shouldFailOperations) {
+            throw new GitHubApiException("Mock failure: getProjects");
+        }
+        
+        return new ArrayList<>(projects.keySet());
+    }
+    
+    @Override
+    public Long createProject(String title, String body) throws GitHubApiException {
+        if (shouldFailOperations) {
+            throw new GitHubApiException("Mock failure: createProject");
+        }
+        
+        Long projectId = projectIdCounter.getAndIncrement();
+        MockProject project = new MockProject(projectId, title, body);
+        projects.put(projectId, project);
+        return projectId;
+    }
+    
+    @Override
+    public void addIssueToProject(Long projectId, Long issueId) throws GitHubApiException {
+        if (shouldFailOperations) {
+            throw new GitHubApiException("Mock failure: addIssueToProject");
+        }
+        
+        MockProject project = projects.get(projectId);
+        if (project == null) {
+            throw new GitHubApiException("Project not found: " + projectId);
+        }
+        
+        MockIssue issue = issues.get(issueId);
+        if (issue == null) {
+            throw new GitHubApiException("Issue not found: " + issueId);
+        }
+        
+        project.issues.add(issueId);
+    }
+    
+    @Override
+    public void updateProjectItemStatus(Long projectId, Long itemId, String status) throws GitHubApiException {
+        if (shouldFailOperations) {
+            throw new GitHubApiException("Mock failure: updateProjectItemStatus");
+        }
+        
+        MockProject project = projects.get(projectId);
+        if (project == null) {
+            throw new GitHubApiException("Project not found: " + projectId);
+        }
+        
+        project.itemStatuses.put(itemId, status);
+    }
+    
     // Test helper methods
     public MockIssue getIssue(Long issueId) {
         return issues.get(issueId);
+    }
+    
+    public MockProject getProject(Long projectId) {
+        return projects.get(projectId);
     }
     
     public void setAvailable(boolean available) {
@@ -102,7 +165,9 @@ public class MockGitHubApiClient implements GitHubApiClient {
     
     public void reset() {
         issues.clear();
+        projects.clear();
         issueIdCounter.set(1);
+        projectIdCounter.set(1);
         available = true;
         shouldFailOperations = false;
     }
@@ -116,6 +181,20 @@ public class MockGitHubApiClient implements GitHubApiClient {
         public boolean closed = false;
         
         public MockIssue(Long id, String title, String body) {
+            this.id = id;
+            this.title = title;
+            this.body = body;
+        }
+    }
+    
+    public static class MockProject {
+        public final Long id;
+        public final String title;
+        public final String body;
+        public final List<Long> issues = new ArrayList<>();
+        public final Map<Long, String> itemStatuses = new HashMap<>();
+        
+        public MockProject(Long id, String title, String body) {
             this.id = id;
             this.title = title;
             this.body = body;
