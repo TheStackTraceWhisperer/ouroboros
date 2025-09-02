@@ -1,0 +1,22 @@
+# Development Dockerfile for Ouroboros Spring Boot Application
+# This image includes development tools: Alpine + Java 21 + Maven
+# Based on the official Maven Alpine image - suitable for development
+
+FROM maven:3.9.9-eclipse-temurin-21-alpine
+
+# Create development user
+RUN addgroup -S developer && adduser -S developer -G developer
+
+# Create workspace directory and set permissions
+RUN mkdir -p /home/developer/workspace && \
+    chown -R developer:developer /home/developer
+
+# Switch to development user
+USER developer
+WORKDIR /home/developer/workspace
+
+# Expose port 8080 for Spring Boot
+EXPOSE 8080
+
+# Default command for development - start an interactive shell
+CMD ["/bin/sh"]

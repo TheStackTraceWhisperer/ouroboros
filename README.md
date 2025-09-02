@@ -18,7 +18,11 @@ A Spring Boot 3.5.x WebMVC Maven Java 21 application.
 
 ## Docker
 
-This application includes a multi-stage Dockerfile for building and running with Java 21:
+This application includes Alpine Linux-based Docker images for optimal size and security:
+
+### Production Docker Image
+
+Multi-stage Dockerfile using Alpine Java images for building and running with Java 21:
 
 ```bash
 # Build the Docker image
@@ -26,6 +30,23 @@ docker build -t ouroboros .
 
 # Run the container
 docker run -p 8080:8080 ouroboros
+```
+
+### Development Docker Image
+
+For development purposes, use the development Dockerfile with Alpine + Java 21 + Maven:
+
+```bash
+# Build the development image
+docker build -f Dockerfile.dev -t ouroboros-dev .
+
+# Run development container with volume mounting
+docker run -it --rm -p 8080:8080 -v $(pwd):/home/developer/workspace ouroboros-dev
+
+# Inside the container, you can run:
+mvn clean compile
+mvn test
+mvn spring-boot:run
 ```
 
 ## CI/CD
