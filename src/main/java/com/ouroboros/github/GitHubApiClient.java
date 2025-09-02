@@ -88,4 +88,13 @@ public interface GitHubApiClient {
      * @throws GitHubApiException if the operation fails
      */
     void updateProjectItemStatus(Long projectId, Long itemId, String status) throws GitHubApiException;
+    
+    /**
+     * Get the status of a GitHub issue.
+     *
+     * @param issueId The GitHub issue ID
+     * @return The state of the issue (e.g., "open", "closed")
+     * @throws GitHubApiException if the operation fails
+     */
+    String getIssueStatus(Long issueId) throws GitHubApiException;
 }
