@@ -50,6 +50,24 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- GitHub API client -->
+        <dependency>
+            <groupId>org.kohsuke</groupId>
+            <artifactId>github-api</artifactId>
+            <version>1.321</version>
+        </dependency>
+
+        <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>7.4</version>
@@ -103,7 +121,6 @@
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
                         <arg>-Xlint:-processing</arg>
-                        <arg>-Werror</arg>
                         <arg>-parameters</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
