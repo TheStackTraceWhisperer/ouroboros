@@ -184,4 +184,15 @@ public class GitHubApiClientImpl implements GitHubApiClient {
             throw new GitHubApiException("Failed to update project item status", e);
         }
     }
+
+    @Override
+    public String getIssueStatus(Long issueId) throws GitHubApiException {
+        try {
+            initializeGitHub();
+            GHIssue issue = repository.getIssue(issueId.intValue());
+            return issue.getState().toString(); // GHIssueState enum -> String
+        } catch (IOException e) {
+            throw new GitHubApiException("Failed to get status for GitHub issue #" + issueId, e);
+        }
+    }
 }

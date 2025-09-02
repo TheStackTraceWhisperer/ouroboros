@@ -145,6 +145,20 @@ public class MockGitHubApiClient implements GitHubApiClient {
         
         project.itemStatuses.put(itemId, status);
     }
+
+    @Override
+    public String getIssueStatus(Long issueId) throws GitHubApiException {
+        if (shouldFailOperations) {
+            throw new GitHubApiException("Mock failure: getIssueStatus");
+        }
+        
+        MockIssue issue = issues.get(issueId);
+        if (issue == null) {
+            throw new GitHubApiException("Issue not found: " + issueId);
+        }
+        
+        return issue.closed ? "closed" : "open";
+    }
     
     // Test helper methods
     public MockIssue getIssue(Long issueId) {

@@ -260,4 +260,46 @@ public class GitHubIntegrationService {
         
         gitHubProjectsService.addIssueToProject(projectId, issueId);
     }
+
+    /**
+     * Periodically checks the status of open issues on GitHub and updates the local database.
+     * This "closes the loop" by allowing the system to know when a task is complete.
+     */
+    @Scheduled(fixedRateString = "${github.integration.status-sync.interval:300000}") // e.g., every 5 minutes
+    @Transactional
+    public void synchronizeStatusFromGitHub() {
+        if (!integrationEnabled) {
+            log.debug("GitHub integration is disabled, skipping status synchronization");
+            return;
+        }
+        
+        if (!gitHubApiClient.isAvailable()) {
+            log.warn("GitHub API client is not available, skipping status synchronization");
+            return;
+        }
+        
+        log.info("Starting GitHub status synchronization for open issues.");
+        
+        // Find all issues that are currently in progress and have a GitHub issue ID
+        List<Issue> openIssues = issueRepository.findByStatus(IssueStatus.IN_PROGRESS);
+
+        for (Issue issue : openIssues) {
+            if (issue.getGithubIssueId() == null) continue;
+
+            try {
+                String githubStatus = gitHubApiClient.getIssueStatus(issue.getGithubIssueId());
+
+                if ("closed".equalsIgnoreCase(githubStatus)) {
+                    log.info("Detected GitHub issue #{} is closed. Updating local issue {} to COMPLETED.",
+                            issue.getGithubIssueId(), issue.getId());
+                    issue.setStatus(IssueStatus.COMPLETED);
+                    issueRepository.save(issue);
+                }
+            } catch (GitHubApiException e) {
+                log.error("Failed to sync status for issue {} from GitHub issue #{}",
+                        issue.getId(), issue.getGithubIssueId(), e);
+            }
+        }
+        log.info("GitHub status synchronization complete.");
+    }
 }
