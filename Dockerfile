@@ -33,6 +33,10 @@ USER appuser
 # Expose port 8080 (Spring Boot default)
 EXPOSE 8080
 
+# Use the Actuator health endpoint to determine container health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
 # Set JVM options for optimal container performance
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
