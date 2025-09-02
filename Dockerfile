@@ -11,7 +11,7 @@ COPY pom.xml .
 COPY src ./src
 
 # Build the application (this will also download dependencies)
-RUN mvn clean package -DskipTests
+RUN mvn -B clean package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-jammy
