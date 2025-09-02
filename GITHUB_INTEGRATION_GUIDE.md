@@ -58,7 +58,7 @@ Content-Type: application/json
 
 {
   "description": "Implement feature X to improve user experience",
-  "createdBy": "product-insight-agent"
+  "createdBy": "development-agent"
 }
 ```
 
