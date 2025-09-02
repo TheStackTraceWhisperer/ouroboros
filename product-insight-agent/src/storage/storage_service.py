@@ -15,7 +15,13 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..config import settings
-from ..models import FeedbackItem, InsightAnalysis, DailySummary, GoalProposal
+from ..models import (
+    FeedbackItem,
+    InsightAnalysis,
+    DailySummary,
+    GoalProposal,
+    GoalProposalStatus,
+)
 from .database_models import (
     Base,
     FeedbackItemDB,

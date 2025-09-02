@@ -18,6 +18,8 @@ from ..models import (
     DailySummary,
     SentimentType,
     TopicTag,
+    TrendAnalysis,
+    TrendType,
 )
 from ..insights import LLMInsightService
 
@@ -311,7 +313,7 @@ Focus on trends, patterns, and implications rather than just restating the numbe
 
         summary = f"""Daily Feedback Summary
 
-We analyzed {total_items} pieces of user feedback today. The overall sentiment was {positive_pct:.1f}% positive, {negative_pct:.1f}% negative, with the remainder being neutral. 
+We analyzed {total_items} pieces of user feedback today. The overall sentiment was {positive_pct:.1f}% positive, {negative_pct:.1f}% negative, with the remainder being neutral.
 
 The primary topic of discussion was {top_topic_name}, mentioned in {top_topic[1]} feedback items. """
 
@@ -391,8 +393,6 @@ The primary topic of discussion was {top_topic_name}, mentioned in {top_topic[1]
         Returns:
             List of significant trend analyses
         """
-        from ..models import TrendAnalysis, TrendType
-
         trends = []
 
         # 1. Detect sentiment shifts
@@ -434,7 +434,6 @@ The primary topic of discussion was {top_topic_name}, mentioned in {top_topic[1]
         analyses: List[InsightAnalysis],
     ) -> List["TrendAnalysis"]:
         """Detect significant changes in sentiment patterns."""
-        from ..models import TrendAnalysis, TrendType
 
         if len(summaries) < 3:
             return []
@@ -538,7 +537,6 @@ The primary topic of discussion was {top_topic_name}, mentioned in {top_topic[1]
         feedback_items: List[FeedbackItem],
         analyses: List[InsightAnalysis],
     ) -> List["TrendAnalysis"]:
-        """Detect clusters of feedback around specific topics."""
         from ..models import TrendAnalysis, TrendType
 
         trends = []
@@ -683,7 +681,6 @@ The primary topic of discussion was {top_topic_name}, mentioned in {top_topic[1]
         analyses: List[InsightAnalysis],
     ) -> List["TrendAnalysis"]:
         """Detect issues that keep recurring over time."""
-        from ..models import TrendAnalysis, TrendType
 
         if len(summaries) < 5:  # Need at least 5 days to detect patterns
             return []

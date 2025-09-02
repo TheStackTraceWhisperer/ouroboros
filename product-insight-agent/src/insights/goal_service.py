@@ -249,7 +249,10 @@ TREND ANALYSIS:
 {chr(10).join([f"  • {indicator}" for indicator in trend.key_indicators])}
 
 SENTIMENT DISTRIBUTION:
-{chr(10).join([f"  • {sentiment.value.title()}: {count} items" for sentiment, count in trend.sentiment_distribution.items()])}
+{chr(10).join([
+    f"  • {sentiment.value.title()}: {count} items"
+    for sentiment, count in trend.sentiment_distribution.items()
+])}
 """
 
         # Sample feedback
