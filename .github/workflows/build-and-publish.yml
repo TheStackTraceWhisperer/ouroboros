@@ -35,8 +35,8 @@ jobs:
 
     - name: Run tests
       env:
-        # Example: Configure GitHub token for integration tests
-        # OUROBOROS_GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
+        # Configure GitHub token for integration tests
+        OUROBOROS_GITHUB_TOKEN: ${{ secrets.OUROBOROS_GITHUB_TOKEN }}
       run: mvn -B clean test
 
     - name: Build application
