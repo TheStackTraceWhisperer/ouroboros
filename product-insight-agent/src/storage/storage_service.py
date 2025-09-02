@@ -11,7 +11,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..config import settings
@@ -98,7 +98,7 @@ class StorageService:
                         )
 
                 session.commit()
-                logger.info(f"Successfully stored feedback items")
+                logger.info("Successfully stored feedback items")
                 return True
 
         except SQLAlchemyError as e:
@@ -138,7 +138,7 @@ class StorageService:
                         existing.update_from_pydantic(analysis)
 
                 session.commit()
-                logger.info(f"Successfully stored insight analyses")
+                logger.info("Successfully stored insight analyses")
                 return True
 
         except SQLAlchemyError as e:
@@ -174,7 +174,7 @@ class StorageService:
                     existing.update_from_pydantic(summary)
 
                 session.commit()
-                logger.info(f"Successfully stored daily summary")
+                logger.info("Successfully stored daily summary")
                 return True
 
         except SQLAlchemyError as e:

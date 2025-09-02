@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime
 from uuid import uuid4
 
-from src.models import FeedbackItem, SentimentType, TopicTag
+from src.models import FeedbackItem
 
 
 @pytest.fixture

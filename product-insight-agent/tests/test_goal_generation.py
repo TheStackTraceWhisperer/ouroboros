@@ -1,9 +1,8 @@
 """Tests for goal generation functionality."""
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from datetime import datetime
-from uuid import uuid4
 
 from src.insights.goal_service import GoalGenerationService
 from src.models import (
@@ -190,7 +189,12 @@ class TestGoalGenerationService:
         """Test successful goal generation with LLM."""
         mock_response = """{
             "title": "Fix Critical App Stability Issues",
-            "description": "Address the recurring app crashes and performance problems that are causing significant user frustration. This includes investigating crash reports, optimizing loading times, and implementing better error handling to prevent future stability issues.",
+            "description": ("Address the recurring app crashes and performance "
+                           "problems that are causing significant user "
+                           "frustration. This includes investigating crash "
+                           "reports, optimizing loading times, and implementing "
+                           "better error handling to prevent future stability "
+                           "issues."),
             "tags": ["stability", "performance", "critical"],
             "estimated_effort": "2-3 weeks",
             "potential_impact": "Significant improvement in user satisfaction and app retention rates"
@@ -249,7 +253,11 @@ class TestGoalGenerationService:
         """Test successful single goal generation."""
         mock_response = """{
             "title": "Resolve Critical Performance and Crash Issues",
-            "description": "Address the significant increase in negative feedback regarding app crashes and performance degradation. Implement comprehensive fixes for stability issues and optimize loading times to restore user confidence.",
+            "description": ("Address the significant increase in negative "
+                           "feedback regarding app crashes and performance "
+                           "degradation. Implement comprehensive fixes for "
+                           "stability issues and optimize loading times to "
+                           "restore user confidence."),
             "tags": ["performance", "stability", "user-experience"],
             "estimated_effort": "3-4 weeks",
             "potential_impact": "Major improvement in user satisfaction and app stability metrics"
@@ -284,7 +292,10 @@ class TestGoalGenerationService:
 
         mock_response = """{
             "title": "Address User-Reported Stability Issues",
-            "description": "Comprehensive fix for the recent surge in crash reports and performance complaints from users. This goal focuses on identifying root causes and implementing robust solutions.",
+            "description": ("Comprehensive fix for the recent surge in crash "
+                           "reports and performance complaints from users. "
+                           "This goal focuses on identifying root causes and "
+                           "implementing robust solutions."),
             "tags": ["stability", "performance"],
             "estimated_effort": "2-3 weeks",
             "potential_impact": "Reduced crash rates and improved user retention"

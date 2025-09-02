@@ -1,7 +1,6 @@
 """Simplified integration tests for core functionality."""
 
-import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from datetime import datetime
 
 from src.processing.data_processor import DataProcessor

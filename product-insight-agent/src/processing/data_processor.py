@@ -110,7 +110,7 @@ class DataProcessor:
 
         # Clean up mentions and hashtags for better analysis
         # Keep them but normalize the format
-        text = self.mention_pattern.sub(lambda m: f"@user", text)
+        text = self.mention_pattern.sub(lambda m: "@user", text)
         text = self.hashtag_pattern.sub(lambda m: f"#{m.group()[1:].lower()}", text)
 
         # Normalize whitespace

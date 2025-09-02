@@ -5,7 +5,6 @@ import pytest
 import tempfile
 import os
 from datetime import datetime
-from pathlib import Path
 from unittest.mock import patch, Mock
 
 from src.main import ProductInsightAgent

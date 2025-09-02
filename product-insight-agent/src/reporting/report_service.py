@@ -5,13 +5,10 @@ This module handles the generation of human-readable summary reports
 based on analyzed feedback data.
 """
 
-import json
 import logging
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict, Any
-
-from ..config import settings
 from ..models import (
     FeedbackItem,
     InsightAnalysis,
@@ -635,12 +632,6 @@ The primary topic of discussion was {top_topic_name}, mentioned in {top_topic[1]
 
         # Detect significant spike (more than 2x average)
         if recent_volume > avg_volume * 2 and recent_volume >= 10:
-            # Get recent feedback
-            recent_feedback = (
-                feedback_items[-recent_volume:]
-                if len(feedback_items) >= recent_volume
-                else feedback_items
-            )
 
             # Basic sentiment distribution
             sentiment_dist = {

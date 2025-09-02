@@ -216,7 +216,7 @@ class ProductInsightAgent:
             logger.info("Full pipeline execution completed successfully")
 
             # Print summary statistics
-            print(f"\n=== Pipeline Execution Summary ===")
+            print("\n=== Pipeline Execution Summary ===")
             print(f"Date: {datetime.utcnow().date()}")
             print(f"New feedback items ingested: {len(feedback_items)}")
             print(f"Feedback items analyzed: {len(analyses)}")
@@ -236,16 +236,16 @@ class ProductInsightAgent:
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(f"# Daily Feedback Summary - {summary.date.date()}\n\n")
                 f.write(f"**Generated:** {summary.generated_at.isoformat()}\n\n")
-                f.write(f"## Overview\n\n")
+                f.write("## Overview\n\n")
                 f.write(f"- **Total Feedback Items:** {summary.total_feedback_items}\n")
 
                 if summary.sentiment_breakdown:
-                    f.write(f"\n## Sentiment Breakdown\n\n")
+                    f.write("\n## Sentiment Breakdown\n\n")
                     for sentiment, count in summary.sentiment_breakdown.items():
                         f.write(f"- **{sentiment.value.title()}:** {count}\n")
 
                 if summary.topic_breakdown:
-                    f.write(f"\n## Topic Breakdown\n\n")
+                    f.write("\n## Topic Breakdown\n\n")
                     for topic, count in sorted(
                         summary.topic_breakdown.items(),
                         key=lambda x: x[1],
@@ -256,11 +256,11 @@ class ProductInsightAgent:
                             f.write(f"- **{topic_name}:** {count}\n")
 
                 if summary.key_insights:
-                    f.write(f"\n## Key Insights\n\n")
+                    f.write("\n## Key Insights\n\n")
                     for insight in summary.key_insights:
                         f.write(f"- {insight}\n")
 
-                f.write(f"\n## Summary\n\n")
+                f.write("\n## Summary\n\n")
                 f.write(summary.summary_text)
 
             logger.info(f"Report saved to {filename}")
@@ -370,7 +370,7 @@ class ProductInsightAgent:
             logger.info("Enhanced pipeline execution completed successfully")
 
             # Print summary statistics
-            print(f"\n=== Enhanced Pipeline Execution Summary ===")
+            print("\n=== Enhanced Pipeline Execution Summary ===")
             print(f"Date: {datetime.utcnow().date()}")
             print(f"New feedback items ingested: {len(feedback_items)}")
             print(f"Feedback items analyzed: {len(analyses)}")
@@ -378,7 +378,7 @@ class ProductInsightAgent:
             print(f"Goal proposals generated: {len(goals)}")
 
             if goals:
-                print(f"\n--- Generated Goals ---")
+                print("\n--- Generated Goals ---")
                 for i, goal in enumerate(goals, 1):
                     print(f"{i}. {goal.title} (Priority: {goal.priority}/5)")
 

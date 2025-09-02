@@ -2,13 +2,10 @@
 
 import json
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
-from uuid import uuid4
+from unittest.mock import Mock, patch
 
 from src.insights.llm_service import LLMInsightService
 from src.models import (
-    FeedbackItem,
     SentimentAnalysis,
     TopicAnalysis,
     InsightAnalysis,

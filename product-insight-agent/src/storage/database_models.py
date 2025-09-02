@@ -5,9 +5,7 @@ This module defines the database schema using SQLAlchemy ORM models
 that correspond to the Pydantic models used throughout the application.
 """
 
-import json
-from datetime import datetime, date
-from typing import List, Dict, Any
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import (
