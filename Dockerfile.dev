@@ -1,50 +1,22 @@
 # Development Dockerfile for Ouroboros Spring Boot Application
-# This image includes development tools: Alpine + SDKMAN + Java 21 + Maven + Git + development utilities
+# This image includes development tools: Alpine + Java 21 + Maven
+# Based on the official Maven Alpine image - suitable for development
 
-FROM alpine:3.19
-
-# Install basic system dependencies
-RUN apk add --no-cache \
-    bash \
-    curl \
-    git \
-    unzip \
-    zip \
-    which \
-    openssh-client \
-    ca-certificates \
-    && rm -rf /var/cache/apk/*
+FROM maven:3.9.9-eclipse-temurin-21-alpine
 
 # Create development user
-RUN addgroup -S developer && adduser -S developer -G developer -s /bin/bash
+RUN addgroup -S developer && adduser -S developer -G developer
+
+# Create workspace directory and set permissions
+RUN mkdir -p /home/developer/workspace && \
+    chown -R developer:developer /home/developer
 
 # Switch to development user
 USER developer
-WORKDIR /home/developer
-
-# Install SDKMAN
-RUN curl -s "https://get.sdkman.io" | bash
-
-# Source SDKMAN and install Java 21 and Maven
-RUN bash -c "source ~/.sdkman/bin/sdkman-init.sh && \
-    sdk install java 21.0.8-tem && \
-    sdk install maven 3.9.9 && \
-    sdk default java 21.0.8-tem && \
-    sdk default maven 3.9.9"
-
-# Create workspace directory
-RUN mkdir -p /home/developer/workspace
-
-# Set JAVA_HOME environment variable
-ENV JAVA_HOME="/home/developer/.sdkman/candidates/java/current"
-ENV MAVEN_HOME="/home/developer/.sdkman/candidates/maven/current"
-ENV PATH="$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH"
+WORKDIR /home/developer/workspace
 
 # Expose port 8080 for Spring Boot
 EXPOSE 8080
 
-# Default working directory for development
-WORKDIR /home/developer/workspace
-
-# Default command - start an interactive bash shell
-CMD ["/bin/bash"]
+# Default command for development - start an interactive shell
+CMD ["/bin/sh"]
