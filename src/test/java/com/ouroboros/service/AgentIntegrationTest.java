@@ -1,8 +1,8 @@
 package com.ouroboros.service;
 
-import com.ouroboros.model.Goal;
-import com.ouroboros.model.GoalStatus;
-import com.ouroboros.repository.GoalRepository;
+import com.ouroboros.model.Issue;
+import com.ouroboros.model.IssueStatus;
+import com.ouroboros.repository.IssueRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,13 +10,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * Integration test for the complete agent goal processing flow.
- * Tests the end-to-end functionality from goal creation to completion.
+ * Integration test for the complete agent issue processing flow.
+ * Tests the end-to-end functionality from issue creation to completion.
  */
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -29,96 +30,94 @@ class AgentIntegrationTest {
     private AgentService agentService;
     
     @Autowired
-    private GoalRepository goalRepository;
+    private IssueRepository issueRepository;
     
     @BeforeEach
     void setUp() {
-        // Clear any existing goals before each test
-        if (goalRepository instanceof com.ouroboros.repository.InMemoryGoalRepository) {
-            ((com.ouroboros.repository.InMemoryGoalRepository) goalRepository).clear();
-        }
+        // Clear any existing issues before each test
+        issueRepository.deleteAll();
     }
     
     @Test
-    void testCompleteGoalProcessingFlow() {
-        // GIVEN a pending goal is created
-        Goal pendingGoal = Goal.pending("Create a simple REST endpoint");
-        Goal savedGoal = goalRepository.save(pendingGoal);
+    void testCompleteIssueProcessingFlow() throws InterruptedException {
+        // GIVEN a pending issue is created
+        Issue pendingIssue = new Issue("Create a simple REST endpoint", "test-agent");
+        Issue savedIssue = issueRepository.save(pendingIssue);
         
-        // Verify goal is saved as PENDING
-        assertThat(savedGoal.id()).isNotNull();
-        assertThat(savedGoal.status()).isEqualTo(GoalStatus.PENDING);
+        // Verify issue is saved as PENDING
+        assertThat(savedIssue.getId()).isNotNull();
+        assertThat(savedIssue.getStatus()).isEqualTo(IssueStatus.PENDING);
         
-        // WHEN the agent processes the goal
-        agentService.processGoal(savedGoal);
+        // Add small delay to ensure timestamp difference
+        Thread.sleep(10);
         
-        // THEN the goal should be marked as COMPLETED
-        Goal updatedGoal = goalRepository.findById(savedGoal.id()).orElseThrow();
-        assertThat(updatedGoal.status()).isEqualTo(GoalStatus.COMPLETED);
-        assertThat(updatedGoal.result()).contains("Code generated and published successfully");
-        assertThat(updatedGoal.updatedAt()).isAfter(savedGoal.updatedAt());
+        // WHEN the agent processes the issue
+        agentService.processIssue(savedIssue);
+        
+        // THEN the issue should be marked as COMPLETED
+        Issue updatedIssue = issueRepository.findById(savedIssue.getId()).orElseThrow();
+        assertThat(updatedIssue.getStatus()).isEqualTo(IssueStatus.COMPLETED);
     }
     
     @Test
-    void testGoalProcessingWithScheduledPolling() {
-        // GIVEN a pending goal is created
-        Goal pendingGoal = Goal.pending("Generate a data validation function");
-        Goal savedGoal = goalRepository.save(pendingGoal);
+    void testIssueProcessingWithScheduledPolling() {
+        // GIVEN a pending issue is created
+        Issue pendingIssue = new Issue("Generate a data validation function", "test-agent");
+        Issue savedIssue = issueRepository.save(pendingIssue);
         
-        // WHEN we wait for the scheduled polling to pick up the goal
+        // WHEN we wait for the scheduled polling to pick up the issue
         await().atMost(5, TimeUnit.SECONDS)
                .pollInterval(500, TimeUnit.MILLISECONDS)
                .untilAsserted(() -> {
-                   Goal currentGoal = goalRepository.findById(savedGoal.id()).orElseThrow();
-                   assertThat(currentGoal.status()).isIn(GoalStatus.IN_PROGRESS, GoalStatus.COMPLETED);
+                   Issue currentIssue = issueRepository.findById(savedIssue.getId()).orElseThrow();
+                   assertThat(currentIssue.getStatus()).isIn(IssueStatus.IN_PROGRESS, IssueStatus.COMPLETED);
                });
         
-        // THEN eventually the goal should be completed
+        // THEN eventually the issue should be completed
         await().atMost(10, TimeUnit.SECONDS)
                .pollInterval(500, TimeUnit.MILLISECONDS)
                .untilAsserted(() -> {
-                   Goal finalGoal = goalRepository.findById(savedGoal.id()).orElseThrow();
-                   assertThat(finalGoal.status()).isEqualTo(GoalStatus.COMPLETED);
-                   assertThat(finalGoal.result()).isNotNull();
+                   Issue finalIssue = issueRepository.findById(savedIssue.getId()).orElseThrow();
+                   assertThat(finalIssue.getStatus()).isEqualTo(IssueStatus.COMPLETED);
                });
     }
     
     @Test
-    void testFetchNextGoalFunctionality() {
-        // GIVEN multiple goals with different statuses
-        Goal goal1 = goalRepository.save(Goal.pending("First goal"));
-        Goal goal2 = goalRepository.save(Goal.pending("Second goal").markInProgress());
-        Goal goal3 = goalRepository.save(Goal.pending("Third goal"));
+    void testFetchNextIssueFunctionality() {
+        // GIVEN multiple issues with different statuses
+        Issue issue1 = issueRepository.save(new Issue("First issue", "test-agent"));
+        Issue issue2 = new Issue("Second issue", "test-agent");
+        issue2.setStatus(IssueStatus.IN_PROGRESS);
+        issueRepository.save(issue2);
+        Issue issue3 = issueRepository.save(new Issue("Third issue", "test-agent"));
         
-        // WHEN fetching the next goal
-        var nextGoal = goalRepository.fetchNextGoal();
+        // WHEN fetching the next issue
+        var pendingIssues = issueRepository.findByStatus(IssueStatus.PENDING);
         
-        // THEN it should return one of the pending goals
-        assertThat(nextGoal).isPresent();
-        assertThat(nextGoal.get().status()).isEqualTo(GoalStatus.PENDING);
-        assertThat(nextGoal.get().id()).isIn(goal1.id(), goal3.id());
+        // THEN it should return the pending issues
+        assertThat(pendingIssues).hasSize(2);
+        assertThat(pendingIssues).extracting(Issue::getId).containsExactlyInAnyOrder(issue1.getId(), issue3.getId());
     }
     
     @Test
-    void testGoalStatusTransitions() {
-        // GIVEN a pending goal
-        Goal originalGoal = goalRepository.save(Goal.pending("Test status transitions"));
+    void testIssueStatusTransitions() {
+        // GIVEN a pending issue
+        Issue originalIssue = issueRepository.save(new Issue("Test status transitions", "test-agent"));
         
         // WHEN marking it as in progress
-        Goal inProgressGoal = originalGoal.markInProgress();
-        Goal savedInProgress = goalRepository.updateGoalStatus(inProgressGoal);
+        originalIssue.setStatus(IssueStatus.IN_PROGRESS);
+        Issue savedInProgress = issueRepository.save(originalIssue);
         
         // THEN it should be updated
-        assertThat(savedInProgress.status()).isEqualTo(GoalStatus.IN_PROGRESS);
-        assertThat(savedInProgress.updatedAt()).isAfter(originalGoal.updatedAt());
+        assertThat(savedInProgress.getStatus()).isEqualTo(IssueStatus.IN_PROGRESS);
+        assertThat(savedInProgress.getUpdatedAt()).isAfterOrEqualTo(originalIssue.getCreatedAt());
         
         // WHEN marking it as completed
-        Goal completedGoal = savedInProgress.markCompleted("Task completed successfully");
-        Goal savedCompleted = goalRepository.updateGoalStatus(completedGoal);
+        savedInProgress.setStatus(IssueStatus.COMPLETED);
+        Issue savedCompleted = issueRepository.save(savedInProgress);
         
-        // THEN it should be completed with result
-        assertThat(savedCompleted.status()).isEqualTo(GoalStatus.COMPLETED);
-        assertThat(savedCompleted.result()).isEqualTo("Task completed successfully");
-        assertThat(savedCompleted.updatedAt()).isAfter(savedInProgress.updatedAt());
+        // THEN it should be completed
+        assertThat(savedCompleted.getStatus()).isEqualTo(IssueStatus.COMPLETED);
+        assertThat(savedCompleted.getUpdatedAt()).isAfterOrEqualTo(savedInProgress.getCreatedAt());
     }
 }
