@@ -1,9 +1,9 @@
 package com.ouroboros.model;
 
 /**
- * Status enumeration for goal proposals.
+ * Status enumeration for issues.
  */
-public enum GoalProposalStatus {
+public enum IssueStatus {
     PENDING,
     IN_PROGRESS,
     COMPLETED,

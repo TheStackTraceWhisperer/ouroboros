@@ -5,12 +5,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Entity representing a goal proposal that can be synchronized with GitHub Issues.
+ * Entity representing an issue that can be synchronized with GitHub Issues.
  * This serves as the foundation for agent observability and control.
  */
 @Entity
 @Table(name = "goal_proposals")
-public class GoalProposal {
+public class Issue {
     
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -21,7 +21,7 @@ public class GoalProposal {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private GoalProposalStatus status;
+    private IssueStatus status;
     
     @Column(name = "github_issue_id")
     private Long githubIssueId;
@@ -36,11 +36,11 @@ public class GoalProposal {
     private String createdBy;
     
     // Default constructor required by JPA
-    protected GoalProposal() {}
+    protected Issue() {}
     
-    public GoalProposal(String description, String createdBy) {
+    public Issue(String description, String createdBy) {
         this.description = description;
-        this.status = GoalProposalStatus.PENDING;
+        this.status = IssueStatus.PENDING;
         this.createdBy = createdBy;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -60,11 +60,11 @@ public class GoalProposal {
         this.updatedAt = LocalDateTime.now();
     }
     
-    public GoalProposalStatus getStatus() {
+    public IssueStatus getStatus() {
         return status;
     }
     
-    public void setStatus(GoalProposalStatus status) {
+    public void setStatus(IssueStatus status) {
         this.status = status;
         this.updatedAt = LocalDateTime.now();
     }

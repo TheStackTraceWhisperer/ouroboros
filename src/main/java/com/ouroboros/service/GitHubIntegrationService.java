@@ -2,9 +2,9 @@ package com.ouroboros.service;
 
 import com.ouroboros.github.GitHubApiClient;
 import com.ouroboros.github.GitHubApiException;
-import com.ouroboros.model.GoalProposal;
-import com.ouroboros.model.GoalProposalStatus;
-import com.ouroboros.repository.GoalProposalRepository;
+import com.ouroboros.model.Issue;
+import com.ouroboros.model.IssueStatus;
+import com.ouroboros.repository.IssueRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Service responsible for synchronizing goal proposals with GitHub Issues.
+ * Service responsible for synchronizing issues with GitHub Issues.
  * Provides observability and control over agent activities through GitHub.
  */
 @Service
@@ -25,7 +25,7 @@ public class GitHubIntegrationService {
     
     private static final Logger log = LoggerFactory.getLogger(GitHubIntegrationService.class);
     
-    private final GoalProposalRepository proposalRepository;
+    private final IssueRepository issueRepository;
     private final GitHubApiClient gitHubApiClient;
     private final GitHubProjectsService gitHubProjectsService;
     
@@ -35,17 +35,17 @@ public class GitHubIntegrationService {
     private LocalDateTime lastSyncTime = LocalDateTime.now().minusHours(1);
     
     @Autowired
-    public GitHubIntegrationService(GoalProposalRepository proposalRepository, 
+    public GitHubIntegrationService(IssueRepository issueRepository, 
                                    GitHubApiClient gitHubApiClient,
                                    GitHubProjectsService gitHubProjectsService) {
-        this.proposalRepository = proposalRepository;
+        this.issueRepository = issueRepository;
         this.gitHubApiClient = gitHubApiClient;
         this.gitHubProjectsService = gitHubProjectsService;
     }
     
     /**
      * Main synchronization method called periodically.
-     * Handles all aspects of goal proposal to GitHub issue synchronization.
+     * Handles all aspects of issue to GitHub issue synchronization.
      */
     @Scheduled(fixedRateString = "${github.integration.sync.interval:60000}")
     @Transactional
@@ -63,14 +63,14 @@ public class GitHubIntegrationService {
         log.info("Starting GitHub synchronization");
         
         try {
-            // 1. Sync new proposals to GitHub issues
-            syncNewProposalsToIssues();
+            // 1. Sync new issues to GitHub issues
+            syncNewIssuesToGitHub();
             
             // 2. Sync status changes to issue comments
             syncStatusChangesToComments();
             
-            // 3. Sync completed/failed proposals to issue closure
-            syncCompletedProposalsToIssueClosure();
+            // 3. Sync completed/failed issues to issue closure
+            syncCompletedIssuesToClosure();
             
             lastSyncTime = LocalDateTime.now();
             log.info("GitHub synchronization completed successfully");
@@ -81,24 +81,24 @@ public class GitHubIntegrationService {
     }
     
     /**
-     * Sync new PENDING proposals to GitHub issues.
+     * Sync new PENDING issues to GitHub issues.
      */
-    private void syncNewProposalsToIssues() {
-        List<GoalProposal> newProposals = proposalRepository.findByGithubIssueIdIsNull();
+    private void syncNewIssuesToGitHub() {
+        List<Issue> newIssues = issueRepository.findByGithubIssueIdIsNull();
         
-        for (GoalProposal proposal : newProposals) {
+        for (Issue issue : newIssues) {
             try {
-                String title = generateIssueTitle(proposal);
-                String body = generateIssueBody(proposal);
+                String title = generateIssueTitle(issue);
+                String body = generateIssueBody(issue);
                 
                 Long issueId = gitHubApiClient.createIssue(title, body);
-                proposal.setGithubIssueId(issueId);
-                proposalRepository.save(proposal);
+                issue.setGithubIssueId(issueId);
+                issueRepository.save(issue);
                 
-                log.info("Created GitHub issue #{} for proposal {}", issueId, proposal.getId());
+                log.info("Created GitHub issue #{} for issue {}", issueId, issue.getId());
                 
             } catch (GitHubApiException e) {
-                log.error("Failed to create GitHub issue for proposal {}", proposal.getId(), e);
+                log.error("Failed to create GitHub issue for issue {}", issue.getId(), e);
             }
         }
     }
@@ -107,123 +107,123 @@ public class GitHubIntegrationService {
      * Sync status changes to GitHub issue comments.
      */
     private void syncStatusChangesToComments() {
-        List<GoalProposal> updatedProposals = proposalRepository.findSyncedProposalsUpdatedSince(lastSyncTime);
+        List<Issue> updatedIssues = issueRepository.findSyncedIssuesUpdatedSince(lastSyncTime);
         
-        for (GoalProposal proposal : updatedProposals) {
-            if (proposal.getGithubIssueId() != null && 
-                proposal.getStatus() != GoalProposalStatus.PENDING &&
-                proposal.getStatus() != GoalProposalStatus.COMPLETED &&
-                proposal.getStatus() != GoalProposalStatus.FAILED) { // Skip final states - they get handled separately
+        for (Issue issue : updatedIssues) {
+            if (issue.getGithubIssueId() != null && 
+                issue.getStatus() != IssueStatus.PENDING &&
+                issue.getStatus() != IssueStatus.COMPLETED &&
+                issue.getStatus() != IssueStatus.FAILED) { // Skip final states - they get handled separately
                 try {
-                    String comment = generateStatusUpdateComment(proposal);
-                    gitHubApiClient.addComment(proposal.getGithubIssueId(), comment);
+                    String comment = generateStatusUpdateComment(issue);
+                    gitHubApiClient.addComment(issue.getGithubIssueId(), comment);
                     
-                    log.info("Added status update comment to GitHub issue #{} for proposal {}", 
-                            proposal.getGithubIssueId(), proposal.getId());
+                    log.info("Added status update comment to GitHub issue #{} for issue {}", 
+                            issue.getGithubIssueId(), issue.getId());
                     
                 } catch (GitHubApiException e) {
-                    log.error("Failed to add comment to GitHub issue #{} for proposal {}", 
-                             proposal.getGithubIssueId(), proposal.getId(), e);
+                    log.error("Failed to add comment to GitHub issue #{} for issue {}", 
+                             issue.getGithubIssueId(), issue.getId(), e);
                 }
             }
         }
     }
     
     /**
-     * Sync completed/failed proposals to GitHub issue closure.
+     * Sync completed/failed issues to GitHub issue closure.
      */
-    private void syncCompletedProposalsToIssueClosure() {
-        List<GoalProposal> completedProposals = proposalRepository.findByStatusAndUpdatedAtGreaterThan(
-                GoalProposalStatus.COMPLETED, lastSyncTime);
-        List<GoalProposal> failedProposals = proposalRepository.findByStatusAndUpdatedAtGreaterThan(
-                GoalProposalStatus.FAILED, lastSyncTime);
+    private void syncCompletedIssuesToClosure() {
+        List<Issue> completedIssues = issueRepository.findByStatusAndUpdatedAtGreaterThan(
+                IssueStatus.COMPLETED, lastSyncTime);
+        List<Issue> failedIssues = issueRepository.findByStatusAndUpdatedAtGreaterThan(
+                IssueStatus.FAILED, lastSyncTime);
         
-        // Handle completed proposals
-        for (GoalProposal proposal : completedProposals) {
-            closeProposalIssue(proposal, "status:completed");
+        // Handle completed issues
+        for (Issue issue : completedIssues) {
+            closeIssue(issue, "status:completed");
         }
         
-        // Handle failed proposals
-        for (GoalProposal proposal : failedProposals) {
-            closeProposalIssue(proposal, "status:failed");
+        // Handle failed issues
+        for (Issue issue : failedIssues) {
+            closeIssue(issue, "status:failed");
         }
     }
     
     /**
-     * Close a GitHub issue for a completed or failed proposal.
+     * Close a GitHub issue for a completed or failed issue.
      */
-    private void closeProposalIssue(GoalProposal proposal, String statusLabel) {
-        if (proposal.getGithubIssueId() != null) {
+    private void closeIssue(Issue issue, String statusLabel) {
+        if (issue.getGithubIssueId() != null) {
             try {
                 // Add final summary comment
-                String finalComment = generateFinalSummaryComment(proposal);
-                gitHubApiClient.addComment(proposal.getGithubIssueId(), finalComment);
+                String finalComment = generateFinalSummaryComment(issue);
+                gitHubApiClient.addComment(issue.getGithubIssueId(), finalComment);
                 
                 // Add status label
-                gitHubApiClient.addLabels(proposal.getGithubIssueId(), List.of(statusLabel));
+                gitHubApiClient.addLabels(issue.getGithubIssueId(), List.of(statusLabel));
                 
                 // Close the issue
-                gitHubApiClient.closeIssue(proposal.getGithubIssueId());
+                gitHubApiClient.closeIssue(issue.getGithubIssueId());
                 
-                log.info("Closed GitHub issue #{} for {} proposal {}", 
-                        proposal.getGithubIssueId(), proposal.getStatus(), proposal.getId());
+                log.info("Closed GitHub issue #{} for {} issue {}", 
+                        issue.getGithubIssueId(), issue.getStatus(), issue.getId());
                 
             } catch (GitHubApiException e) {
-                log.error("Failed to close GitHub issue #{} for proposal {}", 
-                         proposal.getGithubIssueId(), proposal.getId(), e);
+                log.error("Failed to close GitHub issue #{} for issue {}", 
+                         issue.getGithubIssueId(), issue.getId(), e);
             }
         }
     }
     
     /**
-     * Generate GitHub issue title for a proposal.
+     * Generate GitHub issue title for an issue.
      */
-    private String generateIssueTitle(GoalProposal proposal) {
-        String truncatedDescription = proposal.getDescription().length() > 100 
-                ? proposal.getDescription().substring(0, 100) + "..."
-                : proposal.getDescription();
+    private String generateIssueTitle(Issue issue) {
+        String truncatedDescription = issue.getDescription().length() > 100 
+                ? issue.getDescription().substring(0, 100) + "..."
+                : issue.getDescription();
         return String.format("🤖 Agent Task: %s", truncatedDescription);
     }
     
     /**
-     * Generate GitHub issue body for a proposal.
+     * Generate GitHub issue body for an issue.
      */
-    private String generateIssueBody(GoalProposal proposal) {
+    private String generateIssueBody(Issue issue) {
         return String.format("""
-                ## Agent Goal Proposal
+                ## Agent Issue
                 
                 **Description:** %s
                 
                 **Status:** %s
                 **Created by:** %s
                 **Created at:** %s
-                **Proposal ID:** %s
+                **Issue ID:** %s
                 
                 ---
-                *This issue was automatically created by the Agent Observability system to track goal proposal execution.*
+                *This issue was automatically created by the Agent Observability system to track issue execution.*
                 """, 
-                proposal.getDescription(),
-                proposal.getStatus(),
-                proposal.getCreatedBy() != null ? proposal.getCreatedBy() : "System",
-                proposal.getCreatedAt(),
-                proposal.getId());
+                issue.getDescription(),
+                issue.getStatus(),
+                issue.getCreatedBy() != null ? issue.getCreatedBy() : "System",
+                issue.getCreatedAt(),
+                issue.getId());
     }
     
     /**
-     * Generate status update comment for a proposal.
+     * Generate status update comment for an issue.
      */
-    private String generateStatusUpdateComment(GoalProposal proposal) {
+    private String generateStatusUpdateComment(Issue issue) {
         return String.format("🤖 **Status Update:** Task moved to **%s** at %s", 
-                proposal.getStatus(), proposal.getUpdatedAt());
+                issue.getStatus(), issue.getUpdatedAt());
     }
     
     /**
-     * Generate final summary comment for a completed/failed proposal.
+     * Generate final summary comment for a completed/failed issue.
      */
-    private String generateFinalSummaryComment(GoalProposal proposal) {
-        String emoji = proposal.getStatus() == GoalProposalStatus.COMPLETED ? "✅" : "❌";
-        return String.format("%s **Task %s** at %s\n\n*This issue is now closed as the goal proposal has reached its final state.*", 
-                emoji, proposal.getStatus().name().toLowerCase(), proposal.getUpdatedAt());
+    private String generateFinalSummaryComment(Issue issue) {
+        String emoji = issue.getStatus() == IssueStatus.COMPLETED ? "✅" : "❌";
+        return String.format("%s **Task %s** at %s\n\n*This issue is now closed as the issue has reached its final state.*", 
+                emoji, issue.getStatus().name().toLowerCase(), issue.getUpdatedAt());
     }
     
     /**
