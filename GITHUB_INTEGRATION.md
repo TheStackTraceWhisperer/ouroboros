@@ -8,6 +8,8 @@ The GitHubIntegrationService provides a complete workflow management system usin
 
 ## Configuration
 
+### Local Development
+
 Add the following configuration to `application.properties`:
 
 ```properties
@@ -16,6 +18,45 @@ github.token=your_github_token_here
 github.organization=TheStackTraceWhisperer
 github.repository=ouroboros
 ```
+
+### GitHub Actions / CI/CD
+
+For production deployments and GitHub Actions workflows, use environment variables instead of hardcoding tokens:
+
+```properties
+# GitHub Integration Configuration (in application.properties)
+github.token=${GITHUB_TOKEN:}
+github.organization=TheStackTraceWhisperer
+github.repository=ouroboros
+```
+
+Then configure the token via GitHub Actions secrets:
+
+```yaml
+# In your GitHub Actions workflow
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run application
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
+        run: |
+          java -jar target/ouroboros-0.0.1-SNAPSHOT.jar
+```
+
+**Setting up the GitHub Secret:**
+1. Go to your repository → Settings → Secrets and variables → Actions
+2. Click "New repository secret"
+3. Name: `GITHUB_PAT` (or any name you prefer)
+4. Value: Your Personal Access Token (see requirements below)
+5. Click "Add secret"
+
+**Alternative Environment Variable Names:**
+Spring Boot automatically maps environment variables to properties:
+- `GITHUB_TOKEN` maps to `github.token`
+- `GITHUB_ORGANIZATION` maps to `github.organization`  
+- `GITHUB_REPOSITORY` maps to `github.repository`
 
 ### GitHub Token Requirements
 

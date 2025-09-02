@@ -34,6 +34,9 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
 
     - name: Run tests
+      env:
+        # Example: Configure GitHub token for integration tests
+        # GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
       run: mvn -B clean test
 
     - name: Build application
