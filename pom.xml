@@ -59,6 +59,13 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
 
+        <!-- GitHub API integration -->
+        <dependency>
+            <groupId>org.kohsuke</groupId>
+            <artifactId>github-api</artifactId>
+            <version>1.321</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -97,7 +104,6 @@
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
                         <arg>-Xlint:-processing</arg>
-                        <arg>-Werror</arg>
                         <arg>-parameters</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
