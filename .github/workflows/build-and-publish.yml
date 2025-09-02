@@ -7,6 +7,12 @@ on:
     branches: [ main, master ]
   release:
     types: [ published ]
+  # Add this new trigger
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'The PR number'
+        required: true
 
 env:
   REGISTRY: ghcr.io
@@ -17,7 +23,16 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    # This step needs to be modified
+    - name: Checkout PR code
+      if: github.event_name == 'workflow_dispatch'
+      uses: actions/checkout@v4
+      with:
+        ref: refs/pull/${{ github.event.inputs.pr_number }}/merge
+
+    # This is your original checkout step, for other triggers
     - name: Checkout code
+      if: github.event_name != 'workflow_dispatch'
       uses: actions/checkout@v4
 
     - name: Set up JDK 21
@@ -57,7 +72,14 @@ jobs:
       packages: write
 
     steps:
+    - name: Checkout PR code
+      if: github.event_name == 'workflow_dispatch'
+      uses: actions/checkout@v4
+      with:
+        ref: refs/pull/${{ github.event.inputs.pr_number }}/merge
+
     - name: Checkout code
+      if: github.event_name != 'workflow_dispatch'
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
