@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ouroboros-deployment
+  labels:
+    app: ouroboros
+spec:
+  replicas: 1 # Start with one instance
+  selector:
+    matchLabels:
+      app: ouroboros
+  template:
+    metadata:
+      labels:
+        app: ouroboros
+    spec:
+      containers:
+      - name: ouroboros
+        image: ghcr.io/thestacktracewhisperer/ouroboros:latest # This will be replaced by the CI/CD pipeline
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - secretRef:
+            name: ouroboros-secrets # Mounts the secrets from the Kubernetes secret object
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 45
+          periodSeconds: 20
+      # This secret is used by Kubernetes to pull the private image from GHCR
+      imagePullSecrets:
+      - name: ouroboros-ghcr-secret
+
