@@ -1,14 +1,28 @@
-# Agent 1: Self-Enhancing Agent - Usage Guide
+# Agent System Usage Guide
 
-This document describes how to use the newly implemented self-enhancing agent functionality.
+This document provides a comprehensive guide for using the Ouroboros self-enhancing agent system.
 
 ## Overview
 
 The agent system provides:
-- **Goal Management**: Create, track, and process goals through their lifecycle
-- **Automated Processing**: Scheduled polling and processing of pending goals
+- **Issue Management**: Create, track, and process issues through their lifecycle
+- **Automated Processing**: Scheduled polling and processing of pending issues
 - **LLM Integration**: Code generation using configurable LLM providers
 - **Self-Publishing**: Mock implementation of publishing generated code
+- **GitHub Integration**: Bidirectional synchronization with GitHub issues and projects
+
+## Architecture
+
+The system follows a clean architecture pattern:
+
+- **Model**: `Issue`, `IssueStatus` - Core domain objects
+- **Repository**: `IssueRepository` - Data access abstraction  
+- **Service**: `AgentService`, `SelfPublishService` - Business logic
+- **LLM**: `LLMClient`, `LLMClientFactory` - External AI integration
+- **GitHub**: `GitHubIntegrationService` - GitHub API integration
+- **Config**: `EnvironmentConfig` - Configuration management
+
+All components are Spring-managed beans with dependency injection for easy testing and extension.
 
 ## Quick Start
 
@@ -43,58 +57,54 @@ mvn spring-boot:run -Dspring-boot.run.arguments="--demo"
 ### 3. Demo Mode
 
 The demo mode will:
-1. Create 3 sample goals
-2. Process one goal manually to show the flow
-3. Leave remaining goals for automatic processing
+1. Create 3 sample issues
+2. Process one issue manually to show the flow
+3. Leave remaining issues for automatic processing
 4. Display status updates
 
 ## API Usage
 
-### Goal Repository
+### Issue Repository
 
-The `GoalRepository` provides methods to manage goals:
+The `IssueRepository` provides methods to manage issues:
 
 ```java
 @Autowired
-private GoalRepository goalRepository;
+private IssueRepository issueRepository;
 
-// Create a new goal
-Goal goal = goalRepository.save(Goal.pending("Create user authentication system"));
+// Create a new issue
+Issue issue = new Issue();
+issue.setDescription("Create user authentication system");
+issue.setStatus(IssueStatus.PENDING);
+Issue savedIssue = issueRepository.save(issue);
 
-// Fetch next pending goal
-Optional<Goal> nextGoal = goalRepository.fetchNextGoal();
+// Find issues by status
+List<Issue> pendingIssues = issueRepository.findByStatus(IssueStatus.PENDING);
 
-// Update goal status
-Goal updatedGoal = goal.markInProgress();
-goalRepository.updateGoalStatus(updatedGoal);
-
-// Find goals by status
-List<Goal> pendingGoals = goalRepository.findByStatus(GoalStatus.PENDING);
+// Find unsynced issues (not yet synced to GitHub)
+List<Issue> unsyncedIssues = issueRepository.findByGithubIssueIdIsNull();
 ```
 
 ### Agent Service
 
-The `AgentService` handles goal processing:
+The `AgentService` handles issue processing:
 
 ```java
 @Autowired
 private AgentService agentService;
 
-// Manually process a specific goal
-agentService.processGoal(goal);
-
-// Trigger manual polling (normally happens automatically)
-agentService.triggerGoalProcessing();
+// Manually trigger issue processing (normally happens automatically)
+agentService.triggerIssueProcessing();
 ```
 
-## Goal Lifecycle
+## Issue Lifecycle
 
-Goals progress through these states:
+Issues progress through these states:
 
-1. **PENDING** - Goal created and waiting for processing
-2. **IN_PROGRESS** - Goal picked up by agent and being processed
-3. **COMPLETED** - Goal successfully processed and code published
-4. **FAILED** - Goal processing failed with error message
+1. **PENDING** - Issue created and waiting for processing
+2. **IN_PROGRESS** - Issue picked up by agent and being processed  
+3. **COMPLETED** - Issue successfully processed and code published
+4. **FAILED** - Issue processing failed with error message
 
 ## Configuration Options
 
@@ -121,18 +131,21 @@ Run individual component tests:
 ```bash
 # Test specific LLM clients
 mvn test -Dtest=OpenAIClientTest
-mvn test -Dtest=GoogleAIClientTest
+mvn test -Dtest=GoogleAIClientTest  
 mvn test -Dtest=AnthropicAIClientTest
 
 # Test repository functionality
-mvn test -Dtest=InMemoryGoalRepositoryTest
+mvn test -Dtest=IssueRepositoryTest
 ```
 
 ### Integration Tests
 Run end-to-end tests:
 ```bash
-# Test complete goal processing flow
+# Test complete issue processing flow
 mvn test -Dtest=AgentIntegrationTest
+
+# Test GitHub integration
+mvn test -Dtest=GitHubIntegrationTest
 ```
 
 ### All Tests
@@ -145,26 +158,28 @@ mvn test
 
 ### Logs
 The agent logs its activities:
-- Goal creation and status changes
+- Issue creation and status changes
 - LLM interactions and token usage
 - Self-publish actions
 - Polling cycles and errors
+- GitHub synchronization events
 
-### Health Check
-Check application health (including LLM client availability):
+### Application Logs
+Access recent logs via REST API:
 ```bash
-curl http://localhost:8080/actuator/health
+curl http://localhost:8080/logs
 ```
 
 ## Extending the System
 
-### Custom Goal Repository
-Replace the in-memory repository with a database implementation:
+### Custom Issue Repository
+Replace the default repository with a custom database implementation:
 
 ```java
 @Repository
-public class DatabaseGoalRepository implements GoalRepository {
+public class CustomIssueRepository implements IssueRepository {
     // Implement using JPA, MongoDB, etc.
+    // All standard JpaRepository methods are inherited
 }
 ```
 
@@ -192,7 +207,33 @@ Add new LLM clients by implementing the `LLMClient` interface:
 ```java
 @Service
 public class CustomLLMClient implements LLMClient {
-    // Implement custom LLM integration
+    @Override
+    public LLMResponse generate(LLMRequest request) {
+        // Implement custom LLM integration
+    }
+    
+    @Override
+    public String getSupportedModelId() {
+        return "custom-model-id";
+    }
+    
+    @Override
+    public boolean isAvailable() {
+        // Check if client is properly configured
+        return true;
+    }
+}
+```
+
+### Custom GitHub Integration
+Extend GitHub functionality:
+
+```java
+@Service
+public class ExtendedGitHubIntegrationService extends GitHubIntegrationService {
+    // Add custom GitHub workflows
+    // Implement additional project management features
+    // Add custom webhook handling
 }
 ```
 
@@ -200,10 +241,57 @@ public class CustomLLMClient implements LLMClient {
 
 The system follows a clean architecture pattern:
 
-- **Model**: `Goal`, `GoalStatus` - Core domain objects
-- **Repository**: `GoalRepository` - Data access abstraction
+- **Model**: `Issue`, `IssueStatus` - Core domain objects
+- **Repository**: `IssueRepository` - Data access abstraction  
 - **Service**: `AgentService`, `SelfPublishService` - Business logic
 - **LLM**: `LLMClient`, `LLMClientFactory` - External AI integration
+- **GitHub**: `GitHubIntegrationService` - GitHub API integration
 - **Config**: `EnvironmentConfig` - Configuration management
 
 All components are Spring-managed beans with dependency injection for easy testing and extension.
+
+## REST API Integration
+
+### Create Issues
+```bash
+POST /api/issues
+Content-Type: application/json
+
+{
+  "description": "Implement user authentication system",
+  "createdBy": "development-agent"
+}
+```
+
+### Monitor Issue Status
+```bash
+# Get all issues
+GET /api/issues
+
+# Get pending issues
+GET /api/issues/status/PENDING
+
+# Get specific issue
+GET /api/issues/{id}
+
+# Update issue status
+PUT /api/issues/{id}/status
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS"
+}
+```
+
+### Task Submission
+```bash
+POST /api/tasks
+Content-Type: application/json
+
+{
+  "description": "Optimize database queries",
+  "complexity": "MEDIUM"
+}
+```
+
+For complete GitHub integration features, see the [GitHub Integration Guide](GITHUB_INTEGRATION_GUIDE.md).

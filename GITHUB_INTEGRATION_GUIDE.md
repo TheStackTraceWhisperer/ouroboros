@@ -1,21 +1,21 @@
-# GitHub Integration Service Configuration
+# GitHub Integration Configuration Guide
 
 ## Overview
-The GitHub Integration Service provides centralized observability and control for agent tasks by synchronizing goal proposals with GitHub Issues and organizing large features with GitHub Projects. This allows human oversight through a familiar GitHub interface.
+The GitHub Integration Service provides seamless synchronization between the Ouroboros agent system and GitHub, enabling human oversight and collaboration through familiar GitHub interfaces.
 
-## Features
+## Key Features
 
-### GitHub Issues Integration
-- **Automatic Issue Creation**: New goal proposals are automatically converted to GitHub Issues
-- **Status Synchronization**: Proposal status changes are reflected as issue comments
-- **Issue Closure**: Completed or failed proposals automatically close their corresponding issues
-- **Label Management**: Issues can be tagged with relevant labels for categorization
+### Issue Synchronization
+- **Automatic Issue Creation**: Internal task proposals become GitHub Issues automatically
+- **Real-time Status Updates**: Status changes appear as GitHub issue comments
+- **Automatic Issue Closure**: Completed/failed tasks close their corresponding GitHub issues
+- **Label Management**: Issues are tagged with relevant status and category labels
 
-### GitHub Projects Integration (New)
-- **Feature Project Creation**: Large features can be organized into GitHub Projects
-- **Issue-to-Project Linking**: Issues can be added to projects for better organization
-- **Project Item Status Tracking**: Status updates for project items
-- **Project-based Workflow**: Support for feature design and tracking workflows
+### Project Management
+- **GitHub Projects Integration**: Large features can be organized into GitHub Projects
+- **Issue-to-Project Linking**: Automatic assignment of issues to appropriate projects
+- **Project Status Tracking**: Real-time updates for project item statuses
+- **Workflow Support**: Integration with GitHub's project workflow features
 
 ## Configuration
 
@@ -40,169 +40,155 @@ github.integration.sync.interval=60000
 3. Copy the token and set it as the `OUROBOROS_GITHUB_PAT` environment variable or GitHub Actions secret
 
 ### Repository Configuration
-- `github.integration.repository.owner`: Your GitHub username or organization name (uses `GITHUB_REPOSITORY_OWNER` env var or defaults to `TheStackTraceWhisperer`)
-- `github.integration.repository.name`: The repository name where issues will be created (uses `GITHUB_REPOSITORY_NAME` env var or defaults to `ouroboros`)
-- `github.integration.sync.interval`: Sync interval in milliseconds (default: 60000 = 1 minute)
+- `github.integration.repository.owner`: GitHub username or organization (uses `GITHUB_REPOSITORY_OWNER` env var or defaults to `TheStackTraceWhisperer`)
+- `github.integration.repository.name`: Repository name for issue creation (uses `GITHUB_REPOSITORY_NAME` env var or defaults to `ouroboros`)
+- `github.integration.sync.interval`: Synchronization interval in milliseconds (default: 60000 = 1 minute)
 
 ### GitHub Actions Integration
-When running in GitHub Actions, the integration will automatically use the `OUROBOROS_GITHUB_PAT` secret if available. To configure this:
+For GitHub Actions environments, the integration automatically uses the `OUROBOROS_GITHUB_PAT` secret:
 
-1. Go to your repository Settings → Secrets and variables → Actions
-2. Add a new repository secret named `OUROBOROS_GITHUB_PAT`
-3. Set the value to your GitHub Personal Access Token
-4. The application will automatically use this token when running in GitHub Actions
+1. Go to repository Settings → Secrets and variables → Actions
+2. Add repository secret named `OUROBOROS_GITHUB_PAT`
+3. Set value to your GitHub Personal Access Token
+4. The application will automatically use this token in CI/CD environments
 
-## How It Works
+## Synchronization Flow
 
-### 1. Goal Proposal Creation → GitHub Issue
-- When a new goal proposal is created with status `PENDING`
-- The service creates a GitHub Issue with:
-  - Title: "🤖 Agent Task: [proposal description]"
-  - Body: Detailed information about the proposal
+### 1. Task Proposal → GitHub Issue
+- Agent creates internal issue with status `PENDING`
+- Integration service creates GitHub Issue:
+  - Title: "🤖 Agent Task: [issue description]" 
+  - Body: Detailed task information and metadata
   - Status: Open
+  - Labels: Applied based on task type and priority
 
 ### 2. Status Changes → Issue Comments
-- When proposal status changes to `IN_PROGRESS`
-- The service adds a comment: "🤖 Status Update: Task moved to IN_PROGRESS"
+- Status changes to `IN_PROGRESS`: Comment "🤖 Status Update: Task moved to IN_PROGRESS"
+- Progress updates: Regular comments with processing details
+- Error states: Comments with error information and retry status
 
-### 3. Task Completion → Issue Closure
-- When proposal status changes to `COMPLETED` or `FAILED`
-- The service:
-  - Adds a final summary comment
-  - Adds a label (`status:completed` or `status:failed`)
-  - Closes the GitHub Issue
+### 3. Task Completion → Issue Resolution
+- Status `COMPLETED`: Summary comment with results + `status:completed` label + issue closure
+- Status `FAILED`: Error summary comment + `status:failed` label + issue closure
 
 ## API Endpoints
 
-### Create Goal Proposal
+### Issue Management (Standard)
 ```bash
-POST /api/goal-proposals
-Content-Type: application/json
-
+# Create issue (triggers GitHub sync)
+POST /api/issues
 {
-  "description": "Implement feature X to improve user experience",
-  "createdBy": "development-agent"
+  "description": "Implement OAuth2 authentication",
+  "createdBy": "agent-system"
 }
-```
 
-### Get All Proposals
-```bash
-GET /api/goal-proposals
-```
-
-### Get Proposal by ID
-```bash
-GET /api/goal-proposals/{id}
-```
-
-### Update Proposal Status
-```bash
-PUT /api/goal-proposals/{id}/status
-Content-Type: application/json
-
+# Update status (triggers GitHub comment)
+PUT /api/issues/{id}/status
 {
   "status": "IN_PROGRESS"
 }
 ```
 
-### Get Proposals by Status
+### GitHub Projects (Advanced)
 ```bash
-GET /api/goal-proposals/status/PENDING
-GET /api/goal-proposals/status/IN_PROGRESS
-GET /api/goal-proposals/status/COMPLETED
-GET /api/goal-proposals/status/FAILED
-```
-
-### GitHub Projects API Endpoints
-
-#### Create Feature Project
-```bash
+# Create feature project
 POST /api/github/projects
-Content-Type: application/json
-
 {
   "featureName": "User Authentication System",
-  "description": "Implement OAuth2-based authentication with social login support"
+  "description": "OAuth2 implementation with social login support"
 }
-```
 
-#### Add Issue to Project
-```bash
+# Add issue to project  
 POST /api/github/projects/{projectId}/issues/{issueId}
-```
 
-#### Update Project Item Status
-```bash
+# Update project item status
 PUT /api/github/projects/{projectId}/items/{itemId}/status
-Content-Type: application/json
-
 {
   "status": "In Progress"
 }
 ```
 
-## Example Workflow
-
-### Basic Issue Tracking Workflow
-
-1. **Agent creates proposal:**
+### Webhook Integration
 ```bash
-curl -X POST http://localhost:8080/api/goal-proposals \
-  -H "Content-Type: application/json" \
-  -d '{"description": "Fix critical bug in payment system", "createdBy": "self-enhancing-agent"}'
+# GitHub webhook endpoint (configured in repository settings)
+POST /webhook/github
+# Handles: issue updates, project changes, pull request events
 ```
 
-2. **GitHub Issue is created automatically** (within 1 minute)
+## Example Workflow
 
-3. **Agent updates status:**
+### Basic Issue Tracking
+
+1. **Agent creates issue:**
 ```bash
-curl -X PUT http://localhost:8080/api/goal-proposals/{id}/status \
+curl -X POST http://localhost:8080/api/issues \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Fix payment processing bug", "createdBy": "agent"}'
+```
+
+2. **GitHub Issue created automatically** (within 1 minute sync cycle)
+
+3. **Agent processes and updates status:**
+```bash
+curl -X PUT http://localhost:8080/api/issues/{id}/status \
   -H "Content-Type: application/json" \
   -d '{"status": "IN_PROGRESS"}'
 ```
 
-4. **Comment is added to GitHub Issue** (within 1 minute)
+4. **GitHub Issue updated with comment** (within 1 minute)
 
-5. **Agent completes task:**
+5. **Task completion:**
 ```bash
-curl -X PUT http://localhost:8080/api/goal-proposals/{id}/status \
+curl -X PUT http://localhost:8080/api/issues/{id}/status \
   -H "Content-Type: application/json" \
   -d '{"status": "COMPLETED"}'
 ```
 
-6. **GitHub Issue is closed with summary** (within 1 minute)
+6. **GitHub Issue closed with summary** (within 1 minute)
+
+### Advanced Project Management
+
+1. **Create feature project for complex tasks**
+2. **Issues automatically assigned to relevant projects**
+3. **Project boards track progress across multiple related issues**
+4. **Webhook events provide real-time updates back to the agent system**
 
 ## Database Schema
 
-The `goal_proposals` table is automatically created with:
+The `goal_proposals` table stores issue data:
 - `id`: UUID primary key
 - `description`: Task description (max 1000 chars)
 - `status`: PENDING, IN_PROGRESS, COMPLETED, FAILED
-- `github_issue_id`: Link to GitHub Issue number
-- `created_at`: Creation timestamp
-- `updated_at`: Last update timestamp
-- `created_by`: Agent or system that created the proposal
+- `github_issue_id`: Linked GitHub Issue number (null if not synced)
+- `created_at`, `updated_at`: Timestamp tracking
+- `created_by`: Agent or system identifier
 
-## Monitoring
+## Monitoring and Troubleshooting
 
+### Monitoring
 Check application logs for:
-- `GitHubIntegrationService`: Sync activity and errors
-- `GitHubApiClientImpl`: GitHub API interactions
-- Warnings when GitHub API is not available or misconfigured
+- `GitHubIntegrationService`: Sync activity and status
+- `GitHubApiClientImpl`: API interactions and rate limiting
+- Warnings for misconfigurations or API unavailability
 
-## Troubleshooting
+### Common Issues
 
-### GitHub API Not Available
-- Verify token is correct and has required permissions
+**GitHub API Not Available**
+- Verify token permissions (repo, public_repo, project scopes)
 - Check repository owner/name configuration
-- Ensure repository exists and token has access
+- Ensure token has access to target repository
 
-### Sync Not Working
-- Check `github.integration.enabled=true`
-- Verify sync interval configuration
-- Look for error logs in GitHubIntegrationService
+**Sync Delays** 
+- Confirm `github.integration.enabled=true`
+- Check sync interval configuration
+- Review GitHubIntegrationService logs for errors
 
-### Rate Limiting
-- GitHub API has rate limits (5000 requests/hour for authenticated users)
-- The service respects these limits automatically
-- Consider increasing sync interval if needed
+**Rate Limiting**
+- GitHub API: 5000 requests/hour for authenticated users
+- Service automatically respects rate limits
+- Consider increasing sync interval if hitting limits frequently
+
+**Webhook Issues**
+- Verify webhook URL is accessible from GitHub
+- Check webhook secret configuration
+- Review webhook delivery logs in GitHub repository settings
