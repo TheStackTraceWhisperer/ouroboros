@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ouroboros-service
+spec:
+  # This creates a network load balancer with a public IP address on GKE.
+  type: LoadBalancer
+  selector:
+    # This selector ensures the service routes traffic to pods with the label "app: ouroboros".
+    # It must match the labels in your deployment.yaml.
+    app: ouroboros
+  ports:
+  - protocol: TCP
+    # The public port that users will connect to.
+    port: 80
+    # The internal port on your container where the application is running.
+    targetPort: 8080
+
